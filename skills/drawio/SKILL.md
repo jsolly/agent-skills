@@ -1,6 +1,6 @@
 ---
 name: drawio
-description: Generate draw.io diagrams as native .drawio XML files, with optional CLI export to PNG/SVG/PDF.
+description: Use when the user says `/drawio`, asks for a draw.io diagram, or wants an editable native .drawio XML file with optional PNG/SVG/PDF export. NOT for Mermaid-only diagrams, data-heavy charts, or editing an existing diagram without its source XML.
 disable-model-invocation: true
 ---
 
