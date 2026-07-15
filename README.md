@@ -28,6 +28,9 @@ npx skills add jsolly/agent-skills --skill drawio
 | `refactor` | TypeScript refactoring that provably preserves behavior |
 | `remove-feature` | Fully remove a feature, flag, endpoint, or subsystem |
 | `find-edgecase-slop` | Find hard-coded / spiked edge-case complexity; plan-mode todos |
+| `ship` | Review, gate, and integrate local work to `main` (PR or direct-push) |
+| `seo` | Technical SEO + Lighthouse performance/a11y/best-practices audit |
+| `janitor` | Drain self- and Dependabot issues/PRs across a multi-repo `~/code` tree |
 
 ## Source of truth
 
