@@ -1,6 +1,6 @@
 # Agent Fleet — Composition, Gating, Models
 
-The 12 review subagent prompts live in your installed `agents/` directory. Local installs expose them through `~/.cursor/agents/*.md` and `~/.claude/agents/*.md` symlinks that point into `$AGENT_CONFIG_ROOT/agents/` (or the repo that hosts your agent prompts); app repos may receive the same prompts at `.agents/agents/`. `/ship` step 6 dispatches a **light** or **full** fleet based on `{SHIP_PROFILE}` and diff shape (see `orchestration.md` step 3). Agents set no `model` in frontmatter, which Claude Code defaults to `inherit` — so each subagent runs on the same model as the orchestrator session (see "Model", below).
+The 12 review subagent prompts live in dotagents `agents/`. Local installs expose them through `~/.cursor/agents/*.md` and `~/.claude/agents/*.md` symlinks that point directly into `$AGENT_CONFIG_ROOT/agents/`; fleet consumers receive the same prompts at `.agents/agents/`. `/ship` step 6 dispatches a **light** or **full** fleet based on `{SHIP_PROFILE}` and diff shape (see `orchestration.md` step 3). Agents set no `model` in frontmatter, which Claude Code defaults to `inherit` — so each subagent runs on the same model as the orchestrator session (see "Model", below).
 
 The fleet was deliberately pruned from 17 to 12 (2026-06-10): overlapping lenses and near-zero hit-rate agents were cut. A review fleet's failure mode is noise, not missing lenses.
 

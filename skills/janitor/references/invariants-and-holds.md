@@ -20,7 +20,7 @@ wait for a human are the ones the janitor can't confidently make correct (the HO
 | Patch / minor with no breaking or behavior notes in its changelog | **Merge** when green |
 | Non-major bump whose changelog flags breaking changes, deprecations, or behavior you rely on | **Read changelog → adapt the repo → merge** when green (see `dependabot-upgrades.md`) |
 | `github_actions` pin bump | **Merge** when green — majors still get a Major-upgrades read (action majors change defaults/inputs) |
-| Your own (authenticated user) PRs | **Fix failures → merge when green (full autonomy).** Recover intent from the PR itself (title, description, linked issue, the diff) and fix whatever the required checks flag — failing tests, lint, types, build — the same way you adapt a Dependabot bump: edit the real code/tests to be genuinely correct (never mask), push to the PR head, merge once green. WIP guard + HOLD-when-context-insufficient apply (see `pr-drain.md`). |
+| Your own (`my-org`) PRs | **Fix failures → merge when green (full autonomy).** Recover intent from the PR itself (title, description, linked issue, the diff) and fix whatever the required checks flag — failing tests, lint, types, build — the same way you adapt a Dependabot bump: edit the real code/tests to be genuinely correct (never mask), push to the PR head, merge once green. WIP guard + HOLD-when-context-insufficient apply (see `pr-drain.md`). |
 | A bump you **cannot confidently bring into compliance** — ambiguous breaking change, needs a product decision, or an adaptation you can't validate | **HOLD** + report the specific reason. Thoughtful includes knowing when to escalate. |
 
 Two pre-wired alternate postures — change this section's default to adopt one:

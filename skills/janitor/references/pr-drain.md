@@ -116,8 +116,8 @@ changelog HOLD rule, and the step-3 HOLD escape).
 - **Prefer arming GitHub auto-merge** so CI is the final gate before the merge (and thus before the
   deploy): `gh pr merge <n> -R "$SLUG" --squash --auto --delete-branch`. If the PR already has
   `autoMergeRequest != null`, it's armed — skip.
-- **Fallback for plan-gated repos:** GitHub auto-merge is unavailable on private Free repos — `--auto`
-  errors. When it does, and the PR is **CLEAN with all required
+- **Fallback for plan-gated repos:** GitHub auto-merge is unavailable on private Free repos (the
+  dotagents-private memory) — `--auto` errors. When it does, and the PR is **CLEAN with all required
   checks green**, merge immediately: `gh pr merge <n> -R "$SLUG" --squash --delete-branch`. If
   it's not yet green, leave it — the next pass handles it once CI finishes.
 - **Squash** is the fleet default (matches the repos' `auto-merge.yml`); if a repo disallows squash,
@@ -126,10 +126,11 @@ changelog HOLD rule, and the step-3 HOLD escape).
 
 ## Deploy awareness — fire and forget
 
-Merging to `main` **auto-deploys to prod** on most fleet repos (Vercel git-integration on frontend
-apps; GitHub Actions / `deploy:code` on SAM repos; custom handoff workflows on others). That's
-expected and acceptable **because the green gate means CI passed** — the
+Merging to `main` **auto-deploys to prod** on most of these repos (Vercel git-integration on
+example-game/checkboxes/my-org-website; GitHub Actions / `deploy:code` on the SAM repos; github-handoff
+on slow-ci-app). That's expected and acceptable **because the green gate means CI passed** — the
 same protection any merge relies on. An **implemented-issue** PR deploys on merge exactly like any
 other — its extra safety is that `/ship`'s review fleet ran before the merge (invariant 9). After
-merging, **do not** babysit or fix the deploy in this pass — fire-and-forget. A failed post-merge deploy is a separate concern surfaced by the fleet's own
+merging, **do not** babysit or fix the deploy in this pass (the "assume background PR fixer" memory:
+fire-and-forget). A failed post-merge deploy is a separate concern surfaced by the fleet's own
 alerting, not this loop.

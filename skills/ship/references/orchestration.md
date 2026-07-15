@@ -31,7 +31,7 @@ This step is the gate that makes the rest of the skill meaningful. Skip it only 
 
 - Read the project `AGENTS.md` (root of repo) and any linked guideline files it references (e.g., `.agents/rules/code-style.md`, `.agents/rules/testing.md`, etc.).
 - Read any `AGENTS.md` in directories containing modified files.
-- Read the active global agent brief for cross-project conventions: on desktop, follow the installed entrypoint symlink (`~/.cursor/AGENTS.md` → your agent-config repo's `global-instructions/AGENTS.md`); in app repos, use `.agents/AGENTS.md`.
+- Read the active dotagents brief for cross-project conventions: on desktop, follow the installed entrypoint symlink (`~/.cursor/AGENTS.md` → `$AGENT_CONFIG_ROOT/global-instructions/AGENTS.md`); in app repos, use `.agents/AGENTS.md`.
 - These guidelines are the standard the review is measured against.
 
 **Repo declaration contract.** A child repo's `AGENTS.md` declares only persistent inputs the skill
@@ -52,8 +52,8 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 | Profile | Detect (in order) | Review tier (default) | Step 12 |
 | --- | --- | --- | --- |
 | **`vercel-static`** | Root `AGENTS.md` declares `ship profile: vercel-static`, **or** infer: `vercel.json` and/or Vercel Git-linked project; static Astro/Svelte/Next export; no `aws/`, no DB migration tooling | **light** | **Verify** production deploy — do **not** run manual `vercel deploy --prod` when Git integration owns production deploys on push to `main`. See `references/deploy-rules.md` → Vercel Git integration. |
-| **`aws-sam`** | `AGENTS.md` declares `aws-sam`, **or** `aws/template.yaml` + SAM pattern (GitHub `deploy.yml` and/or `deploy:code`) | **full** | Confirm GitHub Actions deploy (Actions-deployed SAM repos) or break-glass `deploy:code`; surface `deploy:infra` for human when infra paths changed |
-| **`gate-only`** | Pre-commit gate wired, no deploy entry (e.g. an agent-config repo) | full or light by diff size | `deploy: none` |
+| **`aws-sam`** | `AGENTS.md` declares `aws-sam`, **or** `aws/template.yaml` + fleet SAM pattern (GitHub `deploy.yml` and/or `deploy:code`) | **full** | Confirm GitHub Actions deploy (my-org fleet) or break-glass `deploy:code` (STA); surface `deploy:infra` for human when infra paths changed |
+| **`gate-only`** | Pre-commit gate wired, no deploy entry (e.g. `dotagents`) | full or light by diff size | `deploy: none` |
 | **`docs-config`** | Markdown/config-only diff, no runtime code | **skipped** (trivial fan-out) | Usually none |
 
 **Detection order:**
@@ -62,7 +62,7 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 2. Otherwise infer from filesystem and scripts: presence of `aws/`, `supabase/`, `prisma/`, `npm run deploy:code`, `vercel.json`, static build output (`dist/`), etc.
 3. When ambiguous, prefer the **more conservative** profile (full review + AWS deploy rules).
 
-**Reference:** `example-static-site` — Astro static build to `dist/`, Vercel Git connected, production at `https://example.com`, no AWS → `vercel-static`.
+**Reference:** `docs-site` — Astro static build to `dist/`, Vercel Git connected, production at `https://docs.example.com`, no AWS → `vercel-static`.
 
 **Integration model (`{INTEGRATION_MODEL}`)** — classify in step 3 alongside ship profile. Record for steps 11–14.
 
@@ -76,14 +76,14 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 | Owner | Detect | Agent responsibility |
 | --- | --- | --- |
 | **`local`** (fleet default) | Default unless `CI owner: github-handoff` in `## Ship` | Full local gate before push; open PR + arm auto-merge; **stop** — fire-and-forget (no CI watch, no fix-red-PR loop) |
-| **`github-handoff`** | `CI owner: github-handoff` in `## Ship` | Cheap local subset only; open PR + arm auto-merge; **stop** — fire-and-forget (no CI watch, no fix-red-PR loop) |
+| **`github-handoff`** | `CI owner: github-handoff` in `## Ship` (slow-ci-app only today) | Cheap local subset only; open PR + arm auto-merge; **stop** — fire-and-forget (no CI watch, no fix-red-PR loop) |
 
 **Review tier override** — escalate to **full** fleet when the diff touches any of: `aws/`, `infra/`, IaC paths, migrations, IAM/secrets handling, auth/provider clients, or cross-cutting lib refactors — even on a `vercel-static` repo.
 
 **Capture post-push deploy/verify rules** into `{POST_PUSH_DEPLOYS}` for step 12:
 
 - **`vercel-static`:** production URL / custom domain, Vercel project name, optional smoke string (page title). No AWS Lambda live checks.
-- **`aws-sam`:** GitHub `deploy.yml` (Actions-deployed SAM repos) or break-glass `deploy:code`, infra trigger paths, optional live Lambda check. Distinguish **code deploy** (Actions / break-glass `deploy:code`) from **infra deploy** (`npm run deploy:infra` — human MFA, never auto-run).
+- **`aws-sam`:** GitHub `deploy.yml` (my-org fleet) or break-glass `deploy:code` (STA), infra trigger paths, optional live Lambda check. Distinguish **code deploy** (Actions / break-glass `deploy:code`) from **infra deploy** (`npm run deploy:infra` — human MFA, never auto-run).
 - If none documented, set `{POST_PUSH_DEPLOYS}` to `none` and follow profile defaults in `references/deploy-rules.md`.
 
 **Plan/spec lookup (D.1)**:
@@ -299,7 +299,7 @@ Production deploys are usually triggered by **merge to `main`** — step 12 is *
 
 1. Confirm integration landed on `main` (merged PR or direct push).
 2. Wait for / confirm production deployment reached **READY** (Vercel dashboard, Vercel MCP/API, or `vercel inspect` — do not run `vercel deploy --prod` unless the repo documents it as the deploy entry or Git integration is absent).
-3. HTTP **200** on production URL / custom domain (e.g. `curl -sf -o /dev/null -w '%{http_code}' https://example.com`).
+3. HTTP **200** on production URL / custom domain (e.g. `curl -sf -o /dev/null -w '%{http_code}' https://docs.example.com`).
 4. Optional smoke: page title or key UI string matches expected app.
 5. Record `deploy: auto (Vercel Git)` or `deploy: verified at <url>`.
 6. Do **not** run AWS Lambda live checks for this profile.
@@ -308,7 +308,7 @@ Manual `npx vercel --prod` is **fallback only** when `{POST_PUSH_DEPLOYS}` or AG
 
 ### `aws-sam`
 
-Actions-deployed SAM repos deploy code via **GitHub Actions** (`.github/workflows/deploy.yml`) after merge — do **not** run local `deploy:code` on PR ships. Local `deploy:code` is **break-glass only** where AGENTS.md still documents it.
+my-org SAM fleet (shared-infra, todoist-backlog-scheduler, misc-notifications, notifications-sam) and slow-ci-app deploy code via **GitHub Actions** (`.github/workflows/deploy.yml`) after merge — do **not** run local `deploy:code` on PR ships. Local `deploy:code` is **break-glass only** where AGENTS.md still documents it (slow-ci-app).
 
 1. Confirm the GitHub Deploy workflow (or break-glass local entry) after push/merge lands when babysitting.
 2. Watch for success signal (workflow green, Lambda updated).
@@ -352,7 +352,7 @@ After steps 10–13 complete, send **one closing message** to the user. This is 
 | --- | --- |
 | PR merged + deploy OK | **`PR merged to main`** — PR URL, SHA, `Ship profile`, `Review tier`, deploy outcome, `CI: GitHub Actions` |
 | PR open, auto-merge queued | **`PR open — auto-merge pending CI`** — PR URL, check status |
-| PR open, GitHub CI handoff | **`PR opened — GitHub CI handoff`** — PR URL, auto-merge armed or not; CI runs in GitHub (e.g. ~10–15 min on slow-CI repos) |
+| PR open, GitHub CI handoff | **`PR opened — GitHub CI handoff`** — PR URL, auto-merge armed or not; CI runs in GitHub (~12 min on slow-ci-app) |
 | PR CI failed | **`Not merged`** — which check failed |
 | Full success (direct-push, Vercel verified) | **`Shipped to main`** — SHA, `Ship profile: vercel-static`, `Review tier: light`, `deploy: verified at https://…`, `CI: none (local gate)` |
 | Full success (direct-push, AWS deploy) | **`Shipped to main`** — SHA, `Ship profile: aws-sam`, `Review tier: full`, `deploy:code succeeded`, `CI: none (local gate)` |

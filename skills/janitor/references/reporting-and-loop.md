@@ -25,16 +25,16 @@ End each pass with a terse, scannable summary — this runs every 5 minutes, so 
 
 ```text
 Janitor pass — <n> repos, <m> authorized items (<p> PRs, <i> issues)
-  MERGED       my-org/example-app#524      aws-sdk cloudwatch (patch, changelog clean)
-  ADAPTED      my-org/example-api#392      undici 6.19→6.21 — adopted renamed request option per changelog, CI green → merged
-  ARMED        my-org/example-app#521      @astrojs/vue (auto-merge pending CI)
-  REBASED      my-org/example-api#399      form-data (was BEHIND → update-branch)
-  UPGRADED     my-org/example-site#405     tailwindcss 3→4 — ran @tailwindcss/upgrade, migrated config to CSS-first @theme, CI green → merged
-  PREPPED      my-org/example-ui#88        eslint 8→9 — flat-config migration pushed, labeled, CI pending → merges when green
-  IMPLEMENTED  my-org/example-api#412 (issue) → PR #414 add CSV export button — /ship review clean, CI green → merged, closed #412
-  IMPL(held)   my-org/example-ui#90 (issue) → PR #91 — built, but bug-scanner flags an unhandled null; JANITOR HOLD comment
-  HELD         my-org/example-api#390      vite 7→8 — migration guide drops the `X` API we use; correct replacement needs your call (partial adaptation pushed, JANITOR HOLD comment)
-  HELD         my-org/example-ui#93 (issue) "make it faster" — too vague to implement; asked which flow + target on the issue
+  MERGED       other-org/slow-ci-app#524  aws-sdk cloudwatch (patch, changelog clean)
+  ADAPTED      my-org/example-game#392         undici 6.19→6.21 — adopted renamed request option per changelog, CI green → merged
+  ARMED        other-org/slow-ci-app#521  @astrojs/vue (auto-merge pending CI)
+  REBASED      my-org/example-game#399         form-data (was BEHIND → update-branch)
+  UPGRADED     my-org/my-org-website#405   tailwindcss 3→4 — ran @tailwindcss/upgrade, migrated config to CSS-first @theme, CI green → merged
+  PREPPED      my-org/checkboxes#88        eslint 8→9 — flat-config migration pushed, labeled, CI pending → merges when green
+  IMPLEMENTED  my-org/example-game#412 (issue) → PR #414 add CSV export button — /ship review clean, CI green → merged, closed #412
+  IMPL(held)   my-org/checkboxes#90 (issue) → PR #91 — built, but bug-scanner flags an unhandled null; JANITOR HOLD comment
+  HELD         my-org/example-game#390         vite 7→8 — migration guide drops the `X` API we use; correct replacement needs your call (partial adaptation pushed, JANITOR HOLD comment)
+  HELD         my-org/checkboxes#93 (issue) "make it faster" — too vague to implement; asked which flow + target on the issue
   SKIPPED      my-org/<repo>#NN            author @thirdparty (not authorized)
 Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 0 errors.
 ```
@@ -88,7 +88,7 @@ the plist.
 
 ## Wiring
 
-After creating or renaming this skill, re-run your agent-config installer so it is linked into
-`~/` (per-skill symlink; your fleet's doctor/verify script then confirms the link). Example:
-`bash $AGENT_CONFIG_ROOT/scripts/install-local-agent-runtime.sh`. No manifest or GUARDS array to
-update — skills are auto-discovered from `skills/*/`.
+This is a canonical dotagents skill. After creating/renaming it, link it into `~/`:
+`bash $AGENT_CONFIG_ROOT/scripts/install-local-agent-runtime.sh` (per-skill symlink;
+`doctor-agents.sh` then verifies the link). No manifest or GUARDS array to update — skills are
+auto-discovered from `skills/*/`.

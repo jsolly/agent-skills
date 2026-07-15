@@ -5,10 +5,10 @@ when the owning route playbook does not resolve a recurring failure; it is not a
 
 ## Fleet discovery
 
-- **Never construct `$GITHUB_USER/<directory-name>`.** Resolve each checkout with
+- **Never construct `my-org/<directory-name>`.** Resolve each checkout with
   `gh repo view --json nameWithOwner -q .nameWithOwner`, then deduplicate by that canonical slug.
-  A checkout directory name may not match the GitHub owner after a repo transfer — redirects can hide
-  a bad assumption until another command stops following it.
+  `slow-ci-app` is owned by `other-org`; GitHub transfer redirects can hide a bad assumption
+  until another command stops following it.
 - **Scan primary checkouts only.** A primary checkout has a `.git` directory. Linked worktrees have
   a `.git` file and live under paths such as `~/code/.worktrees/`; scanning both duplicates items.
 - **`gh issue list --json` already excludes PRs.** Do not build a second overlap filter that risks

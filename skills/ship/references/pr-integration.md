@@ -5,7 +5,7 @@ Use this path when the repo integrates via **branch → PR → CI-gated auto-mer
 **CI owner** (`references/ci-owner.md`) determines only the local gate depth in step 11:
 
 - **`local`** — full local gate before the PR (fleet default).
-- **`github-handoff`** — cheap local subset only (repos that declare slow GitHub CI ownership).
+- **`github-handoff`** — cheap local subset only (slow-ci-app only today).
 
 After the PR opens, **both owners stop — fire-and-forget** (user decision 2026-06-30). §12–13 run only when the user explicitly asks for in-session babysitting.
 
@@ -21,7 +21,7 @@ After the PR opens, **both owners stop — fire-and-forget** (user decision 2026
    - `gh pr edit --add-label ship-auto-merge`
    - `gh pr merge --auto --squash` (arms immediately; label-gated `auto-merge.yml` re-arms on sync)
    - Verify: `gh pr view --json autoMergeRequest,state,url`
-   - If arming fails with `Auto merge is not allowed for this repository` — a **plan gate** on private Free repos, not an error — note `auto-merge: unavailable (plan-gated)` for step 14 and continue; the PR waits for the user or a `/janitor` pass. (`auto-merge.yml`'s check failing on such repos is expected noise, not a regression.)
+   - If arming fails with `Auto merge is not allowed for this repository` — a **plan gate** on private Free repos (e.g. `dotagents`), not an error — note `auto-merge: unavailable (plan-gated)` for step 14 and continue; the PR waits for the user or a `/janitor` pass. (`auto-merge.yml`'s check failing on such repos is expected noise, not a regression.)
 6. **Cap push-fix at 3 cycles** — applies to the **local gate** before push only. Never enter a fix-red-PR loop after the PR is open (either owner).
 
 After the PR is open (auto-merge armed, or noted plan-gated), **stop here — skip §12–13** (fire-and-forget, both CI owners). First, if this ship ran from a **linked worktree** (not the primary checkout), do the worktree cleanup now (orchestration **step 15**): `cd` to the primary checkout's `main` and `git worktree remove <path>`. Gate is "branch pushed + worktree clean" — **not** "merged" (merge happens out-of-session). Then stop. Step 14: **`PR opened — CI handoff`** (add `Worktree: removed <name>`).
@@ -41,8 +41,8 @@ Branch on `{SHIP_PROFILE}` and whether the PR has merged:
 ### After merge (`main` updated`)
 
 - **`vercel-static`:** wait for Vercel production deployment READY; HTTP 200 on production URL. Record `deploy: verified at <url>`.
-- **`aws-sam` (Actions-deployed SAM repos):** babysit `.github/workflows/deploy.yml` when asked — code deploys via GitHub Actions after merge. Do **not** run local `deploy:code`.
-- **`aws-sam` (break-glass local deploy):** GitHub-managed deploy on merge; local `npm run deploy:code` is **break-glass only** when AGENTS.md says so.
+- **`aws-sam` (my-org fleet):** babysit `.github/workflows/deploy.yml` when asked — code deploys via GitHub Actions after merge (shared-infra, todoist-backlog-scheduler, misc-notifications, notifications-sam). Do **not** run local `deploy:code`.
+- **`aws-sam` (slow-ci-app):** GitHub-managed deploy on merge; local `npm run deploy:code` is **break-glass only** when AGENTS.md says so.
 - **`gate-only` / `docs-config`:** `deploy: none`.
 
 ## 13. Confirm integration landed

@@ -60,7 +60,7 @@ This skill is the only semantic review gate — match depth to profile, not one 
 ## Reference files
 
 - `references/orchestration.md` — full step-by-step body, ship profiles, integration model, D.1, D.2, D.3, E.1, E.2 wiring.
-- `references/ci-owner.md` — `local` vs `github-handoff`: local gate depth + the fire-and-forget handoff (fleet default vs slow-CI github-handoff repos).
+- `references/ci-owner.md` — `local` vs `github-handoff`: local gate depth + the fire-and-forget handoff (fleet default vs slow-ci-app).
 - `references/pr-integration.md` — PR + auto-merge path (steps 11–14 when `pr-auto-merge`).
 - `references/agent-fleet.md` — light vs full fleet tables, gating rules, model behavior.
 - `references/output-contract.md` — canonical reviewer output schema (every agent inlines this).

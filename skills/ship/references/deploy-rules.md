@@ -1,6 +1,6 @@
 # Per-Project Deploy Entries — run explicitly by the skill in Step 12
 
-Step 12 behavior depends on **`{SHIP_PROFILE}`** and **`{INTEGRATION_MODEL}`** (see `orchestration.md` step 3, `ci-owner.md`). On **PR ships (either CI owner), skip step 12 entirely** — deploy is not agent-babysat (fire-and-forget) unless the user explicitly asks. On `direct-push` (and explicit babysit requests): **Vercel-Git static sites verify after the push/merge lands; Actions-deployed SAM repos leave GitHub Actions `deploy.yml` to run (unwatched unless asked); repos with break-glass local `deploy:code` may still use that path when AGENTS.md documents it.**
+Step 12 behavior depends on **`{SHIP_PROFILE}`** and **`{INTEGRATION_MODEL}`** (see `orchestration.md` step 3, `ci-owner.md`). On **PR ships (either CI owner), skip step 12 entirely** — deploy is not agent-babysat (fire-and-forget) unless the user explicitly asks. On `direct-push` (and explicit babysit requests): **Vercel-Git static sites verify after the push/merge lands; my-org AWS SAM repos leave GitHub Actions `deploy.yml` to run (unwatched unless asked); slow-ci-app may still use break-glass local `deploy:code`.**
 
 ---
 
@@ -12,7 +12,7 @@ When production deploys are triggered by **merge to `main`**, step 12 is **verif
 
 - Repo has `vercel.json` and/or Vercel project linked to GitHub
 - Static SPA (Astro/Svelte/Next static export) with no `aws/`, no DB migrations
-- Examples: `example-static-site` (Astro → `dist/`, production `https://example.com`), and other Vercel Git-linked static SPAs
+- Examples: `docs-site` (Astro → `dist/`, production `https://docs.example.com`), `my-org-website`, `checkboxes`, `example-game`
 
 ### Verification checklist (step 12)
 
@@ -21,7 +21,7 @@ When production deploys are triggered by **merge to `main`**, step 12 is **verif
 3. **HTTP 200** on production URL / custom domain:
 
    ```bash
-   curl -sf -o /dev/null -w '%{http_code}\n' https://example.com
+   curl -sf -o /dev/null -w '%{http_code}\n' https://docs.example.com
    ```
 
 4. **Optional smoke:** fetch page and confirm title or key UI string (e.g. app name in `<title>`).
@@ -43,9 +43,9 @@ Run `vercel deploy --prod` (or repo-documented command) **only when**:
 
 ## AWS SAM and other code deploys (`aws-sam` profile)
 
-For **Actions-deployed SAM repos**, code deploy is GitHub Actions after merge — do **not** run local `deploy:code`. Some repos may still document break-glass `npm run deploy:code`. The **infra deploy** (`npm run deploy:infra` / full SAM) is **admin-MFA human step-up** — never auto-run.
+For the **my-org SAM fleet**, code deploy is GitHub Actions after merge — do **not** run local `deploy:code`. slow-ci-app may still document break-glass `npm run deploy:code`. The **infra deploy** (`npm run deploy:infra` / full SAM) is **admin-MFA human step-up** — never auto-run.
 
-**Naming convention:** `deploy:code` = post-land Lambda code deploy (break-glass when documented; Actions-deployed repos use GitHub instead). `deploy:infra` = full SAM/CloudFormation (human MFA). Vercel Git sites have no local deploy entry.
+**Naming convention:** `deploy:code` = post-land Lambda code deploy (break-glass / STA; my-org fleet uses Actions instead). `deploy:infra` = full SAM/CloudFormation (human MFA). Vercel Git sites have no local deploy entry.
 
 Because deploy runs after push, push and deploy are **not atomic**: a deploy failure leaves `main` updated but runtime stale — fix forward and re-run the entry (idempotent).
 
@@ -57,8 +57,8 @@ The actual triggers/commands per repo live in each project's `AGENTS.md` and its
 
 In step 3, capture deploy/verify rules into `{POST_PUSH_DEPLOYS}`. Examples:
 
-- **`vercel-static`:** "Verify `https://example.com` returns 200 after Vercel Git deploy; no manual vercel CLI."
-- **`aws-sam`:** "Code deploy via GitHub Actions `deploy.yml` (Actions-deployed SAM repos) or break-glass `deploy:code` when AGENTS.md documents it; full `npm run deploy:infra` when `aws/template.yaml` changes — human-only."
+- **`vercel-static`:** "Verify `https://docs.example.com` returns 200 after Vercel Git deploy; no manual vercel CLI."
+- **`aws-sam`:** "Code deploy via GitHub Actions `deploy.yml` (my-org fleet) or break-glass `deploy:code` (STA); full `npm run deploy:infra` when `aws/template.yaml` changes — human-only."
 - **`gate-only`:** "No deploy entry — `deploy: none`."
 
 Also read `docs/deploy-gotchas.md` (or equivalent) for preconditions.
@@ -66,7 +66,7 @@ Also read `docs/deploy-gotchas.md` (or equivalent) for preconditions.
 ## How to run (step 12) — AWS repos
 
 1. Confirm step-11 push/merge succeeded.
-2. **Actions-deployed SAM repos:** confirm GitHub Actions `deploy.yml` (babysit only if asked). **Break-glass local deploy:** resolve `npm run deploy:code` / `scripts/deploy.sh` when AGENTS.md says so. Gate-only → `deploy: none`.
+2. **my-org SAM fleet:** confirm GitHub Actions `deploy.yml` (babysit only if asked). **slow-ci-app break-glass:** resolve `npm run deploy:code` / `scripts/deploy.sh` when AGENTS.md says so. Gate-only → `deploy: none`.
 3. Watch for success signal (workflow green, Lambda updated, etc.).
 4. Smoke-check when repo documents one.
 5. Post-deploy live verification when diff affects external providers (see below) — **aws-sam only**, not `vercel-static`.
@@ -86,24 +86,24 @@ Some behavior is only exercised against **real** external services (payment prov
 2. Confirm it **passes** — exit/handler success, no thrown error, no error-log/alarm fired. The whole point is that this runs against the real API, so treat a failure as a real regression, not flakiness.
 3. Record the outcome in the step-14 summary (`live check: passed` / `live check: n/a — no live-affecting paths changed`). A failed live check is a stale/broken runtime — fix forward like a failed deploy.
 
-**Reference pattern (provider-backed Lambda).** There is no local live-provider test tier — provider API keys live only in the Lambda runtime. A scheduled **live-provider-check** Lambda (e.g. `src/handlers/live-provider-check.ts`) runs real round-trips against external APIs and throws on failure. After a deploy that touched provider clients, request/response parsing, or notification content built from live data, invoke it manually with `aws lambda invoke` and confirm it succeeds.
+**Reference: slow-ci-app.** There is no local live-provider test tier — provider keys (`MASSIVE_API_KEY`, `FINNHUB_API_KEY`, `XAI_API_KEY`) live only in the Lambda runtime. The scheduled `slow-ci-app-live-provider-check` Lambda (`src/handlers/live-provider-check.ts`) runs the real Massive/Finnhub round-trips and throws on failure. After a deploy that touched `src/lib/providers/`, the provider clients, or notification content built from live data, invoke it manually with `aws lambda invoke` and confirm it succeeds.
 
 ---
 
 ## AWS SAM deploy (Lambda / CloudFormation)
 
-Most common pattern for projects with an `aws/` directory.
+Most common fleet pattern for personal projects with an `aws/` directory.
 
 ### When it runs
 
-**Actions-deployed SAM repos:** code deploy is GitHub Actions `.github/workflows/deploy.yml` after merge to `main` — do **not** run local `deploy:code`. Repos that also document break-glass local deploy use `npm run deploy:code` only when AGENTS.md says so. The **infra** deploy (`npm run deploy:infra`, full SAM) is human-only and is *surfaced, not run*, when an infra-trigger path changed. The trigger paths below tell you which deploy a change warrants:
+**my-org SAM fleet** (shared-infra, todoist-backlog-scheduler, misc-notifications, notifications-sam): code deploy is GitHub Actions `.github/workflows/deploy.yml` after merge to `main` — do **not** run local `deploy:code`. **slow-ci-app** also deploys via Actions; local `npm run deploy:code` is break-glass only. The **infra** deploy (`npm run deploy:infra`, full SAM) is human-only and is *surfaced, not run*, when an infra-trigger path changed. The trigger paths below tell you which deploy a change warrants:
 
 | Path prefix | Why | Which deploy |
 | --- | --- | --- |
 | `aws/template.yaml`, `aws/template.yml` | Stack definition, env vars, alarms, IAM | `deploy:infra` (human MFA) |
 | `aws/deploy.sh` | Deploy script / bundling behavior | `deploy:infra` |
-| `src/handlers/` / `aws/src/handlers/` | Lambda handler entrypoints | Actions code deploy (or break-glass `deploy:code`) |
-| `src/lib/` | Shared code bundled into Lambdas | Actions code deploy (or break-glass `deploy:code`) |
+| `src/handlers/` / `aws/src/handlers/` | Lambda handler entrypoints | Actions code deploy (or STA break-glass `deploy:code`) |
+| `src/lib/` | Shared code bundled into Lambdas | Actions code deploy (or STA break-glass `deploy:code`) |
 
 **Important:** `src/lib/` changes often require a code redeploy even when handlers are unchanged — the bundled artifact includes shared modules. Do not skip code deploy just because only `src/lib/` changed.
 
@@ -115,9 +115,9 @@ Most common pattern for projects with an `aws/` directory.
 
 ### Command (what runs)
 
-**Default (Actions-deployed SAM repos):** GitHub Actions `deploy.yml` after merge — babysit with `gh run watch` only when asked.
+**Default (my-org fleet + STA):** GitHub Actions `deploy.yml` after merge — babysit with `gh run watch` only when asked.
 
-**Break-glass (when AGENTS.md documents local deploy):**
+**Break-glass (slow-ci-app when AGENTS.md says so):**
 
 ```bash
 # code deploy (break-glass, scoped role): lambda update-function-code
@@ -137,11 +137,11 @@ npm run deploy:infra           # = bash aws/deploy.sh (or npm --prefix aws run d
 - Output shows stack/Lambda update complete.
 - Record in the step-14 summary: `deploy: succeeded`. A failed deploy is a stale-runtime state — report it as such (see "How to run" above), not as a push failure.
 
-### Reference pattern (multi-tier SAM repo)
+### Reference: slow-ci-app
 
 From root `AGENTS.md`:
 
-- **Code deploy (GitHub-managed):** GitHub Actions runs the repo's deploy script after `main` CI passes — migrations + Lambda `update-function-code`. Local `npm run deploy:code` is break-glass only. Web tier may deploy via Vercel GitHub integration.
+- **Code deploy (GitHub-managed):** GitHub Actions runs `aws/deploy-web.sh --deploy-ci` after `main` CI passes — Supabase migrations + Lambda `update-function-code`. Local `npm run deploy:code` is break-glass only. Vercel web tier deploys via Vercel GitHub integration.
 - **Infra deploy (human MFA, surfaced not run):** `npm run deploy:infra` (alias for `npm --prefix aws run deploy`) — full SAM, required when `aws/template.yaml`/`aws/deploy.sh` changes.
 - **Gotcha:** merge env-var template changes to `main` before the infra deploy — see `docs/deploy-gotchas.md`
 
@@ -176,7 +176,7 @@ From root `AGENTS.md`:
 With pre-commit hooks gate-only and profile-specific step 12:
 
 - **Vercel Git (`vercel-static`):** verify production URL returns 200 after deploy — do not skip because "push landed". Record `deploy: verified at <url>`.
-- **AWS repos:** if a trigger path changed, confirm Actions deploy (Actions-deployed SAM repos) or run break-glass `deploy:code` when AGENTS.md says so. "Push landed" is not "shipped" until deploy succeeds.
+- **AWS repos:** if a trigger path changed, confirm Actions deploy (my-org fleet) or run break-glass `deploy:code` when AGENTS.md says so. "Push landed" is not "shipped" until deploy succeeds.
 - **Deploying before the push lands.** Run the entry only after `git push origin HEAD:main` succeeds, so the runtime never gets ahead of the remote.
 - **Treating a deploy failure as a push failure.** The code *is* on `main`; the runtime is stale. Fix forward and re-run the deploy entry (idempotent) — and if it stays red, say so loudly in the final summary.
 - **No deploy path wired (AWS repos).** If a repo deploys Lambda code but has neither GitHub Actions `deploy.yml` nor a documented break-glass `deploy:code`, flag it as a wiring gap — the fix is to add the deploy path to the repo, not to improvise commands here. Vercel Git-integrated repos intentionally have no local entry.
