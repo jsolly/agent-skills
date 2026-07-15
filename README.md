@@ -34,4 +34,4 @@ npx skills add jsolly/agent-skills --skill drawio
 
 ## Source of truth
 
-Edits land in private `dotagents` first. This repo is updated by `scripts/sync-public-skills.sh` from that allowlist (`skills/public-manifest.txt`). Do not author skills here.
+Edits land in private `dotagents` first. Public copies are sanitized via `/publish-skills` from the allowlist (`skills/public-manifest.txt`) — not a byte-identical sync script. Do not author skills here.
