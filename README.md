@@ -27,6 +27,7 @@ npx skills add jsolly/agent-skills --skill drawio
 | `research` | Deep-research prompt for external research tools |
 | `refactor` | TypeScript refactoring that provably preserves behavior |
 | `remove-feature` | Fully remove a feature, flag, endpoint, or subsystem |
+| `find-edgecase-slop` | Find hard-coded / spiked edge-case complexity; plan-mode todos |
 
 ## Source of truth
 
