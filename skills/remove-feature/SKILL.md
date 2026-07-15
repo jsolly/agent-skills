@@ -1,11 +1,19 @@
 ---
 name: remove-feature
-description: 'Use when the user says `/remove-feature`, or wants to fully remove/rip out/delete/kill a feature, flag, endpoint, or subsystem from a codebase — "remove X", "rip out the Y feature", "we killed Z, clean up the dead code", "delete the old A path". Interviews to scope the feature, traces it via git history (the commits/PR that first added it) and a codebase deep dive (call-graph from its entry points), builds a complete removal manifest across every orphan category (code, deps, tests, flags, DB, env, routes, assets, docs, IaC), then deletes it in atomic commits with the rest of the app proven still-green. NOT for disabling behind a flag, deprecating with a shim, or fixing a bug — this hard-deletes and leaves no compat layer.'
+description: 'Use when the user says `/remove-feature`, or wants to fully remove/rip out/delete/kill a feature, flag, endpoint, or subsystem from a codebase — "remove X", "rip out the Y feature", "we killed Z, clean up the dead code", "delete the old A path". Switches into plan mode, interviews to scope the feature, traces it via git history (the commits/PR that first added it) and a codebase deep dive (call-graph from its entry points), builds a complete removal manifest across every orphan category (code, deps, tests, flags, DB, env, routes, assets, docs, IaC) with a todo for every concrete change/removal, then deletes it in atomic commits with the rest of the app proven still-green. NOT for disabling behind a flag, deprecating with a shim, or fixing a bug — this hard-deletes and leaves no compat layer.'
 ---
 
 # Remove Feature
 
 > **Author in a worktree.** This skill deletes repo files and lines across many files — work in a git worktree off `main`, never the primary checkout on the `main` branch (`rules/worktree-authoring.md`). Integrate with `/ship`.
+
+## Enter plan mode (first action)
+
+Phases 1–2, the REMOVAL MANIFEST, and the handoff pause are **planning** — read-only, no deletes. Before any interview question or tracing:
+
+1. **If the session is not already in plan mode, switch into it** (Cursor: `SwitchMode` → `plan`; other harnesses: the equivalent read-only / planning posture if available). Explain briefly: removal scoping and the full delete list must land as a plan before any file is touched.
+2. **If already in plan mode, stay there** — do not bounce modes.
+3. Stay in plan mode through Phase 1, Phase 2, the filled manifest, the todo materialization below, and the handoff fork. **Only leave plan mode when the user answers the handoff and chooses an execute path** (or an equivalent "go delete" instruction). Switching to agent/implementation mode is then required so deletes can run.
 
 Removing a feature fails two ways, and this skill exists to prevent both:
 
@@ -102,16 +110,29 @@ HUMAN-GATED (destructive / infra — agent PROPOSES, does not execute):
 - **`schema` + `observ.` are the non-obvious sweeps** — the ones a `src/`-only grep never surfaces and where most real misses hide. Walk `references/orphan-smells.md` §6/§8/§9 explicitly; don't fold them into "code".
 - **Manifest bigger than one reviewable removal?** Split by seam (e.g. "remove the UI, then the API, then the schema") and do them as separate ships.
 
+## Materialize the full todo list (still plan mode; before handoff)
+
+After the REMOVAL MANIFEST is filled and printed, **immediately create a todo for every concrete thing that must change or be removed** — the harness todo tool (`TodoWrite` in Cursor; equivalent elsewhere). This is mandatory, not optional polish: the plan is incomplete until the todo list covers the whole footprint.
+
+- **One todo per concrete item**, not one per category. Expand each DELETE line into discrete todos (each file to `rm`, each symbol at `file:line`, each dep, each test file/case, each flag+branch site, each route, each asset, each doc section, each schema/observability sweep item). Same for **HUMAN-GATED** (each proposed DB drop, data purge, env/secret retirement, IaC resource, external-console change) and actionable **VERIFY REPLACEMENT** rows.
+- **Do not todo KEEP** — those are do-not-touch; listing them as work invites collateral edits.
+- **Order todos leaf-before-root** to match Execute (callers/tests/routes → core → deps/config → human-gated tail).
+- **Content must be executable alone** — path + action ("Delete `src/foo/Bar.tsx`", "Drop `FEATURE_X` branch in `src/flags.ts:42`", "Propose `DROP COLUMN …` for human"). Vague todos like "clean up tests" fail this gate.
+- **Empty category → no todo** for that category; do not invent filler. If a category was skipped during tracing, go back and walk it — missing categories are missing work, not empty work.
+- Mark all todos `pending` until Execute starts; during Execute, flip each to `completed` as its commit lands (or `cancelled` only if the user explicitly drops that item from scope).
+
 ## Hand off — pause before execution
 
-The filled manifest is the finish line for *this* skill's planning work. **Do not roll straight from an approved manifest into deleting.** Interview + archaeology + call-graph tracing is a high-reasoning posture — the wrong, and most expensive, configuration for the mechanical delete loop — and the user may want a different model, a fresh context, or a workflow to carry the removal out. So you stop, and you hand off cleanly:
+The filled manifest **plus the complete todo list** is the finish line for *this* skill's planning work. **Do not roll straight from an approved manifest into deleting.** Interview + archaeology + call-graph tracing is a high-reasoning posture — the wrong, and most expensive, configuration for the mechanical delete loop — and the user may want a different model, a fresh context, or a workflow to carry the removal out. So you stop, and you hand off cleanly:
 
-- **Emit the filled REMOVAL MANIFEST as a self-contained, copy-pasteable block.** Include the Phase-1 scope statement, the DELETE/KEEP/HUMAN-GATED lists, the oracle + baseline line, and the leaf-before-root delete order. A *fresh agent with none of this conversation* must be able to execute from that block alone — it has to survive a model switch or a new session, because that is exactly what may happen next. (If the baseline is red, or the user rejects the manifest, there is nothing to hand off — say so plainly and stop; don't manufacture an Execute path the gate just blocked.)
-- **Then pause with one final `AskUserQuestion`** — the handoff fork (`multiSelect: false`; this is a committed choice, same single-select shape as the Phase-1 interview). Options: **execute here now** with the current model; **switch model first** (the user runs `/model` — e.g. down to a faster/cheaper executor, or to a different model entirely — then tells you to go); **hand the plan to a workflow** to fan the delete slices out across subagents; or **stop here** with the manifest captured, nothing more to do. The user's real intent, as always, can land in "Other."
+- **Emit the filled REMOVAL MANIFEST as a self-contained, copy-pasteable block.** Include the Phase-1 scope statement, the DELETE/KEEP/HUMAN-GATED lists, the oracle + baseline line, the leaf-before-root delete order, and note that the session todo list mirrors every DELETE / HUMAN-GATED / VERIFY REPLACEMENT item. A *fresh agent with none of this conversation* must be able to execute from that block alone — it has to survive a model switch or a new session, because that is exactly what may happen next. (If the baseline is red, or the user rejects the manifest, there is nothing to hand off — say so plainly and stop; don't manufacture an Execute path the gate just blocked.)
+- **Then pause with one final `AskUserQuestion`** — the handoff fork (`multiSelect: false`; this is a committed choice, same single-select shape as the Phase-1 interview). Options: **execute here now** with the current model; **switch model first** (the user runs `/model` — e.g. down to a faster/cheaper executor, or to a different model entirely — then tells you to go); **hand the plan to a workflow** to fan the delete slices out across subagents; or **stop here** with the manifest + todos captured, nothing more to do. The user's real intent, as always, can land in "Other."
 - **Do not begin Execute until the user answers.** Picking "switch model first" means you stop and wait — the point of the pause is to give them the seam to change models before any deletion work is spent. Approving the manifest earns the feature the right to be removed; it does not oblige *you* to be the one who deletes it.
 
 ## Execute — delete in atomic commits, oracle green between each
 
+- **Leave plan mode first** when the user chooses an execute path (Cursor: `SwitchMode` → `agent` if still in plan). Deletes require a write-capable mode; do not attempt Execute while still planning.
+- **Drive off the todo list.** Work the pending todos in order; each completed atomic commit should close the matching todo(s). New orphans found mid-Execute get **new** todos before you delete them — never silent extras outside the list.
 - **Order: leaves before roots.** Remove callers/tests/routes first, then the now-unreferenced core, then the newly-orphaned deps/config last. Each atomic step (`rm the component`, `drop the flag branch`, `delete the endpoint`, `prune the dep`) is **its own commit**, oracle green between each — a failure localizes to one step and reverts clean.
 - **Delete the whole shape — no shims.** Don't leave a stub function returning `null`, a flag defaulting off, a commented-out block, or a re-export "for compatibility." The feature is gone, not disabled (`rules/code-style.md`). A flag removal deletes the flag *and* collapses every `if (flag)` to its surviving branch.
 - **Re-run the orphan tools after the core deletion** (`knip`/`depcheck`/`vulture`): removing the feature turns its private helpers and deps into fresh orphans the first pass couldn't see. Loop until they report clean — that's the tail where orphans hide.
@@ -153,4 +174,5 @@ If the reference sweep has a live hit you can't justify, or you can't write the 
 - **Don't run a destructive prod migration or stack teardown yourself** — propose the command, a human runs it (`rules/agent-cloud-access.md`). Removing the resource from the template/migration in the diff is fine; applying it to prod is not.
 - **Don't comment out or shim** — delete the shape; git history is the archive.
 - **Don't skip the interview** — guessing the feature boundary is how you delete shared code or miss half the footprint.
+- **Don't skip plan mode or the full todo list** — stay in plan mode through the manifest; every DELETE / HUMAN-GATED / VERIFY REPLACEMENT item becomes its own todo before the handoff. A category rolled into one vague todo is how orphans hide.
 - **Don't skip the handoff pause** — printing the manifest is not permission to delete. Emit it, ask the fork (`execute here` / `switch model` / `workflow` / `stop`), and wait. Rolling straight into Execute burns the expensive planning model on mechanical deletes and steals the user's seam to change agents.
