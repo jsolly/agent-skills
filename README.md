@@ -31,6 +31,7 @@ npx skills add jsolly/agent-skills --skill drawio
 | `ship` | Review, gate, and integrate local work to `main` (PR or direct-push) |
 | `seo` | Technical SEO + Lighthouse performance/a11y/best-practices audit |
 | `janitor` | Drain self- and Dependabot issues/PRs across a multi-repo `~/code` tree |
+| `explain-diff-html` | Rich interactive HTML explanation of a diff/PR (Background, Intuition, Code, Quiz) |
 
 ## Source of truth
 
