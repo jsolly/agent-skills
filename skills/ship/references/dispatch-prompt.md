@@ -64,7 +64,7 @@ Do not invoke nested review helpers, panels, or sub-reviewers. Inspect files and
 | --- | --- | --- |
 | `{PLAN_OR_SPEC}` | Most recently modified plan under a harness-native plans dir (`.cursor/plans/`, `.claude/plans/`, etc.) within the session, or a path referenced explicitly in recent messages. See `references/orchestration.md` step 3. | Use the conversation's first user message describing intent. If none, write `No explicit plan or spec — review against the diff and project guidelines only.` |
 | `{ARCHITECTURAL_NOTES}` | The orchestrator's notes from step 5 (architectural sanity check) | `No architectural concerns noted.` |
-| `{GUIDELINES}` | Concatenated content of project root `AGENTS.md`, any `AGENTS.md` in directories containing modified files, and the active dotagents brief (desktop: read `~/.cursor/AGENTS.md` symlink target; app repos: `.agents/AGENTS.md`) | The user's active dotagents brief alone if no project `AGENTS.md` exists |
+| `{GUIDELINES}` | Concatenated content of project root `AGENTS.md`, any `AGENTS.md` in directories containing modified files, and the active host brief / repo `AGENTS.md` | Repo `AGENTS.md` / host User Rules alone if no project guidelines exist |
 | `{CHANGED_FILES}` | Union of committed branch changes (`origin/main...HEAD`), staged changes, unstaged changes, and untracked files | Required — must not be empty |
 | `{FILE_CONTENTS}` | Full text of each changed file, labeled by path (orchestrator reads via the file-read tool in step 6) | Required for fan-out — use `(deleted)` for removed paths, `(binary — skipped)` for non-text |
 | `{DIFF}` | Combined committed branch diff, staged diff, unstaged diff, and untracked-file markers | Required — must not be empty |

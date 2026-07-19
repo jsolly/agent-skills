@@ -26,14 +26,15 @@ Mechanical blocks on prod DB migrations, infra teardown, and authoring into `CLA
 
 | Layer | Where | Covers |
 | --- | --- | --- |
-| **Home (laptop)** | `block-prod-db-migrations`, `block-stack-delete`, and `block-claude-md-write` wired into each tool's app-owned config by an agent following `setup-personal-machine.md` | Local Cursor, Claude Code, and Codex sessions on any wired machine |
+| **Home (laptop)** | `block-prod-db-migrations`, `block-stack-delete`, and `block-claude-md-write` wired into each tool's app-owned config by an agent following `host machine setup docs` | Local Cursor, Claude Code, and Codex sessions on any wired machine |
 
-The two shell guards are `block-prod-db-migrations` and `block-stack-delete`, plus the path/write guard `block-claude-md-write`. Run `scripts/doctor-agents.sh` to verify live wiring.
+The two shell guards are `block-prod-db-migrations` and `block-stack-delete`, plus the path/write guard `block-claude-md-write`. On a laptop host, run the doctor script to verify live wiring. Cloud VMs skip laptop doctor/guards.
 
 Install or refresh symlinked skills/agents/rules:
 
 ```bash
-bash $AGENT_CONFIG_ROOT/scripts/install-local-agent-runtime.sh
+# Laptop-only: run the host skill installer (install-local-agent-runtime.sh). Cloud: bash .cursor/install-cloud-skills.sh.
+# Cloud: bash .cursor/install-cloud-skills.sh
 ```
 
 ## Verify guard wiring

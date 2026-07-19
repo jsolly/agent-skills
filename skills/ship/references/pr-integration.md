@@ -5,7 +5,7 @@ Use this path when the repo integrates via **branch → PR → CI-gated auto-mer
 **CI owner** (`references/ci-owner.md`) determines only the local gate depth in step 11:
 
 - **`local`** — full local gate before the PR (fleet default).
-- **`github-handoff`** — cheap local subset only (slow-ci-app only today).
+- **`github-handoff`** — cheap local subset only (example-app only today).
 
 After the PR opens, **both owners stop — fire-and-forget** (user decision 2026-06-30). §12–13 run only when the user explicitly asks for in-session babysitting.
 
@@ -41,8 +41,8 @@ Branch on `{SHIP_PROFILE}` and whether the PR has merged:
 ### After merge (`main` updated`)
 
 - **`vercel-static`:** wait for Vercel production deployment READY; HTTP 200 on production URL. Record `deploy: verified at <url>`.
-- **`aws-sam` (my-org fleet):** babysit `.github/workflows/deploy.yml` when asked — code deploys via GitHub Actions after merge (shared-infra, todoist-backlog-scheduler, misc-notifications, notifications-sam). Do **not** run local `deploy:code`.
-- **`aws-sam` (slow-ci-app):** GitHub-managed deploy on merge; local `npm run deploy:code` is **break-glass only** when AGENTS.md says so.
+- **`aws-sam` (my-org fleet):** babysit `.github/workflows/deploy.yml` when asked — code deploys via GitHub Actions after merge (shared-infra, todoist-backlog-scheduler, misc-notifications, personal-memory). Do **not** run local `deploy:code`.
+- **`aws-sam` (example-app):** GitHub-managed deploy on merge; local `npm run deploy:code` is **break-glass only** when AGENTS.md says so.
 - **`gate-only` / `docs-config`:** `deploy: none`.
 
 ## 13. Confirm integration landed
