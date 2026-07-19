@@ -25,15 +25,15 @@ End each pass with a terse, scannable summary — this runs every 5 minutes, so 
 
 ```text
 Janitor pass — <n> repos, <m> authorized items (<p> PRs, <i> issues)
-  MERGED       other-org/slow-ci-app#524  aws-sdk cloudwatch (patch, changelog clean)
-  ADAPTED      my-org/example-game#392         undici 6.19→6.21 — adopted renamed request option per changelog, CI green → merged
-  ARMED        other-org/slow-ci-app#521  @astrojs/vue (auto-merge pending CI)
-  REBASED      my-org/example-game#399         form-data (was BEHIND → update-branch)
+  MERGED       example-project/example-app#524  aws-sdk cloudwatch (patch, changelog clean)
+  ADAPTED      my-org/ExampleGeo#392         undici 6.19→6.21 — adopted renamed request option per changelog, CI green → merged
+  ARMED        example-project/example-app#521  @astrojs/vue (auto-merge pending CI)
+  REBASED      my-org/ExampleGeo#399         form-data (was BEHIND → update-branch)
   UPGRADED     my-org/my-org-website#405   tailwindcss 3→4 — ran @tailwindcss/upgrade, migrated config to CSS-first @theme, CI green → merged
   PREPPED      my-org/checkboxes#88        eslint 8→9 — flat-config migration pushed, labeled, CI pending → merges when green
-  IMPLEMENTED  my-org/example-game#412 (issue) → PR #414 add CSV export button — /ship review clean, CI green → merged, closed #412
+  IMPLEMENTED  my-org/ExampleGeo#412 (issue) → PR #414 add CSV export button — /ship review clean, CI green → merged, closed #412
   IMPL(held)   my-org/checkboxes#90 (issue) → PR #91 — built, but bug-scanner flags an unhandled null; JANITOR HOLD comment
-  HELD         my-org/example-game#390         vite 7→8 — migration guide drops the `X` API we use; correct replacement needs your call (partial adaptation pushed, JANITOR HOLD comment)
+  HELD         my-org/ExampleGeo#390         vite 7→8 — migration guide drops the `X` API we use; correct replacement needs your call (partial adaptation pushed, JANITOR HOLD comment)
   HELD         my-org/checkboxes#93 (issue) "make it faster" — too vague to implement; asked which flow + target on the issue
   SKIPPED      my-org/<repo>#NN            author @thirdparty (not authorized)
 Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 0 errors.
@@ -60,10 +60,10 @@ Each iteration is one pass; the cadence is armed automatically:
   automatically (Loop termination below), or stop it any time with the loop's own control.
 - **One-shot:** `/janitor once` — run a single pass, arm nothing.
 - **True background (unattended):** wrap a headless run in a launchd agent, e.g. a
-  `~/Library/LaunchAgents/com.example.janitor.plist` firing
+  `~/Library/LaunchAgents/com.my-org.janitor.plist` firing
   `claude -p "/janitor once"` on a 300s `StartInterval` (use `once` so each firing doesn't try
   to arm an in-session loop). Not created by this skill — set it up deliberately if you want the
-  cadence to survive without an open session. (If you already run the old `com.example.pr-janitor`
+  cadence to survive without an open session. (If you already run the old `com.my-org.pr-janitor`
   plist, unload + rename it — the label and the `-p` command both change.)
 
 ## Loop termination — stop when drained
@@ -88,7 +88,4 @@ the plist.
 
 ## Wiring
 
-This is a canonical dotagents skill. After creating/renaming it, link it into `~/`:
-`bash $AGENT_CONFIG_ROOT/scripts/install-local-agent-runtime.sh` (per-skill symlink;
-`doctor-agents.sh` then verifies the link). No manifest or GUARDS array to update — skills are
-auto-discovered from `skills/*/`.
+On a laptop host, link this skill into discovery paths with the host skill installer, then run the doctor script. On Cursor Cloud, `.cursor/install-cloud-skills.sh` installs the public package. Skills are auto-discovered from `skills/*/`.

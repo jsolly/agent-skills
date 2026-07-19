@@ -127,8 +127,8 @@ changelog HOLD rule, and the step-3 HOLD escape).
 ## Deploy awareness — fire and forget
 
 Merging to `main` **auto-deploys to prod** on most of these repos (Vercel git-integration on
-example-game/checkboxes/my-org-website; GitHub Actions / `deploy:code` on the SAM repos; github-handoff
-on slow-ci-app). That's expected and acceptable **because the green gate means CI passed** — the
+ExampleGeo/checkboxes/my-org-website; GitHub Actions / `deploy:code` on the SAM repos; github-handoff
+on example-app). That's expected and acceptable **because the green gate means CI passed** — the
 same protection any merge relies on. An **implemented-issue** PR deploys on merge exactly like any
 other — its extra safety is that `/ship`'s review fleet ran before the merge (invariant 9). After
 merging, **do not** babysit or fix the deploy in this pass (the "assume background PR fixer" memory:

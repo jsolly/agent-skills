@@ -2,7 +2,7 @@
 
 The taxonomy of what a removed feature leaves behind, the detection signal for each, and the tool
 that finds it. Grounded in (a) verified tooling research and (b) a real fleet removal
-(`slow-ci-app#542`, "Smart Price Alerts") where an agent's first pass missed most of this and the
+(`example-app#542`, "Smart Price Alerts") where an agent's first pass missed most of this and the
 user had to push it out one category at a time. Read this during **Phase 2 (trace)** and walk *every*
 row — a category you skip is where the orphan hides.
 

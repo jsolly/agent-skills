@@ -30,8 +30,8 @@ Lighthouse runs via the **CLI** (the `lighthouse-run.mts` helper), not the brows
 
 `/seo <website>` sets the target site. Normalize bare domains by prepending `https://`, preserving paths only when the user provided one. Examples:
 
-- `/seo example.com` → `https://example.com/`
-- `/seo https://www.example.com` → `https://www.example.com/`
+- `/seo example-app.com` → `https://example-app.com/`
+- `/seo https://www.example-app.com` → `https://www.example-app.com/`
 
 Still confirm the canonical host once live evidence is available; do not assume bare domain vs `www`.
 
