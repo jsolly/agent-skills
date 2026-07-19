@@ -2,7 +2,7 @@
 
 Classify in orchestration **step 3** alongside `{SHIP_PROFILE}` and `{INTEGRATION_MODEL}`. Record in the step-8 verdict and step-14 summary.
 
-Two models — **most fleet repos are `local`**; **slow-ci-app is the only `github-handoff` repo today**.
+Two models — **most fleet repos are `local`**; **example-app is the only `github-handoff` repo today**.
 
 ## `local` (fleet default)
 
@@ -14,14 +14,14 @@ Two models — **most fleet repos are `local`**; **slow-ci-app is the only `gith
 
 **Detect:** default when `## Ship` omits `CI owner:` or declares `CI owner: local`.
 
-**Fleet examples:** `dotagents`, `docs-site`, `my-org-website`, `checkboxes`.
+**Fleet examples:** `dotagents`, `example-learn`, `my-org-website`, `checkboxes`.
 
 ## `github-handoff`
 
 **Who owns CI:** GitHub Actions after the PR is opened — not the agent session.
 
 - Local gate subset is **cheap only** (lint, types, static checks — whatever the repo documents). Unit tests, E2E, DB-backed tests, and full build run in GitHub CI only.
-- CI is **slow** (slow-ci-app ~12 minutes) — waiting in-session is wasteful.
+- CI is **slow** (example-app ~12 minutes) — waiting in-session is wasteful.
 - After step 11 (branch pushed, PR opened, `ship-auto-merge` label + auto-merge armed): **stop**. Fire-and-forget.
 - **Do not:** `gh pr checks --watch`, poll CI, re-push to fix red checks, babysit merge, or babysit post-merge deploy — unless the user explicitly asks in this session.
 - **Worktree cleanup fires at PR creation, not merge.** If the ship ran from a linked worktree (not the primary checkout), `cd` back to the primary checkout's `main` and remove the worktree as soon as the PR is open + branch pushed — see orchestration **step 15**. Rationale: the branch is safe on `origin` the moment the PR exists, and no PR ship forward-fixes red CI in-session (fire-and-forget), so there is nothing to keep the worktree around for. Waiting for merge would orphan the worktree forever, since merge happens out-of-session.
@@ -29,7 +29,7 @@ Two models — **most fleet repos are `local`**; **slow-ci-app is the only `gith
 
 **Detect:** `CI owner: github-handoff` in root `AGENTS.md` `## Ship`.
 
-**Fleet example:** slow-ci-app only (as of fleet migration).
+**Fleet example:** example-app only (as of fleet migration).
 
 ## Interaction with `{INTEGRATION_MODEL}`
 
@@ -46,7 +46,7 @@ Two models — **most fleet repos are `local`**; **slow-ci-app is the only `gith
 **CI owner: local.** Agent runs the full local gate before push; after the PR opens, stop — do not watch or fix PR CI in-session.
 ```
 
-**GitHub CI handoff (slow-ci-app pattern):**
+**GitHub CI handoff (example-app pattern):**
 
 ```markdown
 **CI owner: github-handoff.** GitHub Actions owns the full test battery (~12 min). Local gate subset is lint/types/static only. After `/ship` opens the PR and arms auto-merge, stop — do not watch or fix CI to force merge.

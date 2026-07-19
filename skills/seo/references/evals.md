@@ -7,8 +7,8 @@ Use this file before changing `SKILL.md` frontmatter. If a description change al
 The `seo` skill should load for:
 
 - `/seo audit this site with Ahrefs and fix anything actionable`
-- `/seo example.com`
-- `/seo https://www.example.com`
+- `/seo example-app.com`
+- `/seo https://www.example-app.com`
 - `Run Ahrefs Site Audit, inspect all issues, and remediate the codebase`
 - `Use Google Search Console to check whether these fixed URLs are indexed`
 - `Submit the sitemap and changed URLs after the SEO fixes deploy`
@@ -20,7 +20,7 @@ The `seo` skill should load for:
 - `Trigger another Ahrefs crawl and compare against the post-fix baseline`
 - `Keep fixing, deploying, re-crawling, and scanning until the SEO score is 100 or stops improving`
 - `Run Lighthouse on prod and localhost and improve the scores`
-- `/seo example.com — iterate all four Lighthouse categories until they stop improving`
+- `/seo example-app.com — iterate all four Lighthouse categories until they stop improving`
 - `Our Lighthouse performance and accessibility scores are low; audit and fix them`
 - `Make this page faster and improve Core Web Vitals`
 - `Run an accessibility audit and fix what's actionable`

@@ -1,6 +1,6 @@
 # Per-Project Deploy Entries — run explicitly by the skill in Step 12
 
-Step 12 behavior depends on **`{SHIP_PROFILE}`** and **`{INTEGRATION_MODEL}`** (see `orchestration.md` step 3, `ci-owner.md`). On **PR ships (either CI owner), skip step 12 entirely** — deploy is not agent-babysat (fire-and-forget) unless the user explicitly asks. On `direct-push` (and explicit babysit requests): **Vercel-Git static sites verify after the push/merge lands; my-org AWS SAM repos leave GitHub Actions `deploy.yml` to run (unwatched unless asked); slow-ci-app may still use break-glass local `deploy:code`.**
+Step 12 behavior depends on **`{SHIP_PROFILE}`** and **`{INTEGRATION_MODEL}`** (see `orchestration.md` step 3, `ci-owner.md`). On **PR ships (either CI owner), skip step 12 entirely** — deploy is not agent-babysat (fire-and-forget) unless the user explicitly asks. On `direct-push` (and explicit babysit requests): **Vercel-Git static sites verify after the push/merge lands; my-org AWS SAM repos leave GitHub Actions `deploy.yml` to run (unwatched unless asked); example-app may still use break-glass local `deploy:code`.**
 
 ---
 
@@ -12,7 +12,7 @@ When production deploys are triggered by **merge to `main`**, step 12 is **verif
 
 - Repo has `vercel.json` and/or Vercel project linked to GitHub
 - Static SPA (Astro/Svelte/Next static export) with no `aws/`, no DB migrations
-- Examples: `docs-site` (Astro → `dist/`, production `https://docs.example.com`), `my-org-website`, `checkboxes`, `example-game`
+- Examples: `example-learn` (Astro → `dist/`, production `https://example-learn.com`), `my-org-website`, `checkboxes`, `ExampleGeo`
 
 ### Verification checklist (step 12)
 
@@ -21,7 +21,7 @@ When production deploys are triggered by **merge to `main`**, step 12 is **verif
 3. **HTTP 200** on production URL / custom domain:
 
    ```bash
-   curl -sf -o /dev/null -w '%{http_code}\n' https://docs.example.com
+   curl -sf -o /dev/null -w '%{http_code}\n' https://example-learn.com
    ```
 
 4. **Optional smoke:** fetch page and confirm title or key UI string (e.g. app name in `<title>`).
@@ -43,7 +43,7 @@ Run `vercel deploy --prod` (or repo-documented command) **only when**:
 
 ## AWS SAM and other code deploys (`aws-sam` profile)
 
-For the **my-org SAM fleet**, code deploy is GitHub Actions after merge — do **not** run local `deploy:code`. slow-ci-app may still document break-glass `npm run deploy:code`. The **infra deploy** (`npm run deploy:infra` / full SAM) is **admin-MFA human step-up** — never auto-run.
+For the **my-org SAM fleet**, code deploy is GitHub Actions after merge — do **not** run local `deploy:code`. example-app may still document break-glass `npm run deploy:code`. The **infra deploy** (`npm run deploy:infra` / full SAM) is **admin-MFA human step-up** — never auto-run.
 
 **Naming convention:** `deploy:code` = post-land Lambda code deploy (break-glass / STA; my-org fleet uses Actions instead). `deploy:infra` = full SAM/CloudFormation (human MFA). Vercel Git sites have no local deploy entry.
 
@@ -57,7 +57,7 @@ The actual triggers/commands per repo live in each project's `AGENTS.md` and its
 
 In step 3, capture deploy/verify rules into `{POST_PUSH_DEPLOYS}`. Examples:
 
-- **`vercel-static`:** "Verify `https://docs.example.com` returns 200 after Vercel Git deploy; no manual vercel CLI."
+- **`vercel-static`:** "Verify `https://example-learn.com` returns 200 after Vercel Git deploy; no manual vercel CLI."
 - **`aws-sam`:** "Code deploy via GitHub Actions `deploy.yml` (my-org fleet) or break-glass `deploy:code` (STA); full `npm run deploy:infra` when `aws/template.yaml` changes — human-only."
 - **`gate-only`:** "No deploy entry — `deploy: none`."
 
@@ -66,7 +66,7 @@ Also read `docs/deploy-gotchas.md` (or equivalent) for preconditions.
 ## How to run (step 12) — AWS repos
 
 1. Confirm step-11 push/merge succeeded.
-2. **my-org SAM fleet:** confirm GitHub Actions `deploy.yml` (babysit only if asked). **slow-ci-app break-glass:** resolve `npm run deploy:code` / `scripts/deploy.sh` when AGENTS.md says so. Gate-only → `deploy: none`.
+2. **my-org SAM fleet:** confirm GitHub Actions `deploy.yml` (babysit only if asked). **example-app break-glass:** resolve `npm run deploy:code` / `scripts/deploy.sh` when AGENTS.md says so. Gate-only → `deploy: none`.
 3. Watch for success signal (workflow green, Lambda updated, etc.).
 4. Smoke-check when repo documents one.
 5. Post-deploy live verification when diff affects external providers (see below) — **aws-sam only**, not `vercel-static`.
@@ -86,7 +86,7 @@ Some behavior is only exercised against **real** external services (payment prov
 2. Confirm it **passes** — exit/handler success, no thrown error, no error-log/alarm fired. The whole point is that this runs against the real API, so treat a failure as a real regression, not flakiness.
 3. Record the outcome in the step-14 summary (`live check: passed` / `live check: n/a — no live-affecting paths changed`). A failed live check is a stale/broken runtime — fix forward like a failed deploy.
 
-**Reference: slow-ci-app.** There is no local live-provider test tier — provider keys (`MASSIVE_API_KEY`, `FINNHUB_API_KEY`, `XAI_API_KEY`) live only in the Lambda runtime. The scheduled `slow-ci-app-live-provider-check` Lambda (`src/handlers/live-provider-check.ts`) runs the real Massive/Finnhub round-trips and throws on failure. After a deploy that touched `src/lib/providers/`, the provider clients, or notification content built from live data, invoke it manually with `aws lambda invoke` and confirm it succeeds.
+**Reference: example-app.** There is no local live-provider test tier — provider keys (`MASSIVE_API_KEY`, `FINNHUB_API_KEY`, `XAI_API_KEY`) live only in the Lambda runtime. The scheduled `example-app-live-provider-check` Lambda (`src/handlers/live-provider-check.ts`) runs the real Massive/Finnhub round-trips and throws on failure. After a deploy that touched `src/lib/providers/`, the provider clients, or notification content built from live data, invoke it manually with `aws lambda invoke` and confirm it succeeds.
 
 ---
 
@@ -96,7 +96,7 @@ Most common fleet pattern for personal projects with an `aws/` directory.
 
 ### When it runs
 
-**my-org SAM fleet** (shared-infra, todoist-backlog-scheduler, misc-notifications, notifications-sam): code deploy is GitHub Actions `.github/workflows/deploy.yml` after merge to `main` — do **not** run local `deploy:code`. **slow-ci-app** also deploys via Actions; local `npm run deploy:code` is break-glass only. The **infra** deploy (`npm run deploy:infra`, full SAM) is human-only and is *surfaced, not run*, when an infra-trigger path changed. The trigger paths below tell you which deploy a change warrants:
+**my-org SAM fleet** (shared-infra, todoist-backlog-scheduler, misc-notifications, personal-memory): code deploy is GitHub Actions `.github/workflows/deploy.yml` after merge to `main` — do **not** run local `deploy:code`. **example-app** also deploys via Actions; local `npm run deploy:code` is break-glass only. The **infra** deploy (`npm run deploy:infra`, full SAM) is human-only and is *surfaced, not run*, when an infra-trigger path changed. The trigger paths below tell you which deploy a change warrants:
 
 | Path prefix | Why | Which deploy |
 | --- | --- | --- |
@@ -117,7 +117,7 @@ Most common fleet pattern for personal projects with an `aws/` directory.
 
 **Default (my-org fleet + STA):** GitHub Actions `deploy.yml` after merge — babysit with `gh run watch` only when asked.
 
-**Break-glass (slow-ci-app when AGENTS.md says so):**
+**Break-glass (example-app when AGENTS.md says so):**
 
 ```bash
 # code deploy (break-glass, scoped role): lambda update-function-code
@@ -137,7 +137,7 @@ npm run deploy:infra           # = bash aws/deploy.sh (or npm --prefix aws run d
 - Output shows stack/Lambda update complete.
 - Record in the step-14 summary: `deploy: succeeded`. A failed deploy is a stale-runtime state — report it as such (see "How to run" above), not as a push failure.
 
-### Reference: slow-ci-app
+### Reference: example-app
 
 From root `AGENTS.md`:
 
