@@ -1,0 +1,14 @@
+{
+	"name": "agent-skills",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check:md": "bash scripts/lint-md.sh",
+		"check:actions": "bash scripts/check-actions.sh"
+	},
+	"devDependencies": {
+		"github-actionlint": "^1.7.12",
+		"markdownlint-cli2": "^0.23.0",
+		"shellcheck": "^4.1.0"
+	}
+}
