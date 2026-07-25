@@ -1,6 +1,6 @@
 ---
 name: drawio
-description: Generate draw.io diagrams as native .drawio XML files, with optional CLI export to PNG/SVG/PDF.
+description: Use when the user says `/drawio`, asks for a draw.io diagram, or wants an editable native .drawio XML file with optional PNG/SVG/PDF export. NOT for Mermaid-only diagrams, data-heavy charts, or editing an existing diagram without its source XML.
 disable-model-invocation: true
 ---
 
@@ -20,7 +20,7 @@ Write native `.drawio` files (`mxfile` XML). Optionally export to PNG, SVG, or P
 
 ## Workflow
 
-1. Generate mxGraphModel XML for the requested diagram
+1. Generate `.drawio` XML using the `mxfile` wrapper (inner `mxGraphModel`) for the requested diagram
 2. Write to `<name>.drawio` in the working directory
 3. If the user wants an export format, run the CLI with `--embed-diagram`, then delete the source `.drawio`
 4. Open the result with `open <file>`

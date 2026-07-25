@@ -15,8 +15,8 @@ Your job is to declare the **logical structure** of the diagram — what nodes e
 - Do NOT compute x/y coordinates in prose. No "column spacings of 160px totaling 1840px width — that's too wide, let me tighten to 1700…" loops. Use the rigid grid below; do the arithmetic in your head and write the XML.
 - Do NOT re-derive drawio mechanics (`horizontal=0`, `startSize=110`, nested-lane coordinates). Use the templates below as-is.
 - Do NOT enumerate columns ("customer lane columns 0-10, web app 1-7"). Place a node, move on.
-- Do NOT add `<Array as="points">` waypoints. Declare `source` and `target` only.
-- Do NOT set `exitX` / `exitY` / `entryX` / `entryY` connection-point overrides unless you have specific geometric intent.
+- Do NOT add `<Array as="points">` waypoints or other obstacle hand-routing. Declare `source` and `target` only.
+- Do NOT set `exitX` / `exitY` / `entryX` / `entryY` unless you have specific geometric intent — **exception:** sequence-diagram messages stack with `exitY`/`entryY` (see Sequence diagrams).
 - Do NOT verify, re-check, or adjust coordinates after placing a node.
 - Do NOT narrate "building the diagram / finalizing the XML / now let me…". Just emit XML.
 - Do NOT write out lists of node positions as planning text. Emit them as `<mxCell>` elements directly.
@@ -134,8 +134,8 @@ HTML in attribute values must be **XML-escaped**: `<` → `&lt;`, `>` → `&gt;`
 
 **Don't hand-route edges.** Just declare `source` and `target`. You do **not** need to:
 
-- Add `<mxPoint>` waypoints
-- Set `exitX` / `exitY` / `entryX` / `entryY`
+- Add `<Array as="points">` or other obstacle waypoints
+- Set `exitX` / `exitY` / `entryX` / `entryY` (exception: sequence messages — see below)
 - Route around obstacles by hand
 
 draw.io's built-in router is **basic**: each edge is a straight line or a simple right-angle path between `source` and `target`, with **no obstacle avoidance** — a wire will run straight across any box that sits between its endpoints. There is no post-layout or libavoid pass for files written by this skill. Place connected nodes with open space between them (adjacent grid cells), or accept that dense crossings may cut through shapes.
@@ -176,7 +176,7 @@ draw.io's built-in router is **basic**: each edge is a straight line or a simple
 
 ## Sequence diagrams
 
-Use `umlLifeline` participants spaced horizontally. Messages are **straight** edges (no `edgeStyle`) with small arrowheads. Stack messages top-to-bottom by increasing `y` on the edge geometry via relative positioning — place lifelines on one row; message order is implied by vertical position of endpoints on the lifeline.
+Use `umlLifeline` participants spaced horizontally. Messages are **straight** edges (no `edgeStyle`) with small arrowheads. Keep `source`/`target` on the lifelines; stack messages top-to-bottom with increasing `exitY`/`entryY` (0–1 along the lifeline height). This is the one sanctioned use of connection-point overrides — do **not** use `<mxPoint>` waypoints for sequence stacking.
 
 ```xml
 <mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=30;whiteSpace=wrap;html=1;" vertex="1" parent="1">
@@ -188,23 +188,14 @@ Use `umlLifeline` participants spaced horizontally. Messages are **straight** ed
 <mxCell id="p3" value="DB" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=30;whiteSpace=wrap;html=1;" vertex="1" parent="1">
   <mxGeometry x="480" y="40" width="100" height="280" as="geometry"/>
 </mxCell>
-<mxCell id="m1" value="POST /login" style="endArrow=block;endSize=6;startSize=6;html=1;verticalAlign=bottom;" edge="1" parent="1" source="p1" target="p2">
-  <mxGeometry relative="1" as="geometry">
-    <mxPoint x="130" y="100" as="sourcePoint"/>
-    <mxPoint x="330" y="100" as="targetPoint"/>
-  </mxGeometry>
+<mxCell id="m1" value="POST /login" style="endArrow=block;endSize=6;startSize=6;html=1;verticalAlign=bottom;exitX=1;exitY=0.2;entryX=0;entryY=0.2;" edge="1" parent="1" source="p1" target="p2">
+  <mxGeometry relative="1" as="geometry"/>
 </mxCell>
-<mxCell id="m2" value="query user" style="endArrow=block;endSize=6;startSize=6;html=1;verticalAlign=bottom;" edge="1" parent="1" source="p2" target="p3">
-  <mxGeometry relative="1" as="geometry">
-    <mxPoint x="330" y="160" as="sourcePoint"/>
-    <mxPoint x="530" y="160" as="targetPoint"/>
-  </mxGeometry>
+<mxCell id="m2" value="query user" style="endArrow=block;endSize=6;startSize=6;html=1;verticalAlign=bottom;exitX=1;exitY=0.4;entryX=0;entryY=0.4;" edge="1" parent="1" source="p2" target="p3">
+  <mxGeometry relative="1" as="geometry"/>
 </mxCell>
-<mxCell id="m3" value="200 OK" style="endArrow=open;endSize=6;startSize=6;dashed=1;html=1;verticalAlign=bottom;" edge="1" parent="1" source="p2" target="p1">
-  <mxGeometry relative="1" as="geometry">
-    <mxPoint x="330" y="220" as="sourcePoint"/>
-    <mxPoint x="130" y="220" as="targetPoint"/>
-  </mxGeometry>
+<mxCell id="m3" value="200 OK" style="endArrow=open;endSize=6;startSize=6;dashed=1;html=1;verticalAlign=bottom;exitX=0;exitY=0.6;entryX=1;entryY=0.6;" edge="1" parent="1" source="p2" target="p1">
+  <mxGeometry relative="1" as="geometry"/>
 </mxCell>
 ```
 
