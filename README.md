@@ -52,6 +52,7 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `seo` | Technical SEO + Lighthouse audit |
 | `janitor` | Drain issues/PRs across repos |
 | `explain-diff-html` | Interactive HTML diff explanation |
+| `optimize-workspace` | Monthly workspace audit — drain memories into durable config |
 
 ## Review agents (`/ship` fleet)
 

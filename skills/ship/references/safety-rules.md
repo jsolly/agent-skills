@@ -33,7 +33,7 @@ The two shell guards are `block-prod-db-migrations` and `block-stack-delete`, pl
 Install or refresh symlinked skills/agents/rules:
 
 ```bash
-# Laptop-only: run the host skill installer (install-local-agent-runtime.sh). Cloud: bash .cursor/install-cloud-skills.sh.
+# Laptop: run the host skill installer (install-local-agent-runtime.sh).
 # Cloud: bash .cursor/install-cloud-skills.sh
 ```
 
@@ -46,5 +46,8 @@ jq '.hooks.beforeShellExecution' ~/.cursor/hooks.json
 
 ## What this does NOT do
 
-- Does not mechanically block git operations — `/ship` and user rules still forbid unsafe git.
+- Does not mechanically block git operations — `/ship` orchestrator discipline still forbids unsafe
+  git (stage by name; never `--no-verify` / force-push to `main`). The laptop global brief carries
+  the same invariants for Cursor (no home-dir rules loader); do not cite private-only rule paths
+  from this public-packaged skill.
 - Does not run the gate — the skill runs the gate explicitly (orchestration steps 11–12).

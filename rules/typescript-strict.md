@@ -21,7 +21,7 @@ The **tsc** profile also sets `strict: true` and `noUnusedLocals`. The **astro**
 
 Repos that already use `exactOptionalPropertyTypes` (misc-notifications, shared-infra, todoist-backlog-scheduler) keep it as a repo-local addition on top of the baseline.
 
-**CI:** GitHub Actions runners do not have a host agent-config checkout unless you add one. Repos whose `tsconfig.json` extends a shared baseline should **vendor a copy** of that baseline JSON into the repo (e.g. `tsconfig/strict-astro.baseline.json`) so CI typecheck is self-contained.
+**CI:** GitHub Actions runners do not have `$AGENT_CONFIG_ROOT` unless you clone it. Repos whose `tsconfig.json` extends `../dotagents/tsconfig/*` work on laptops with the standard `~/code` layout. For CI when `dotagents` is private (the default), either vendor a copy of the baseline JSON into the repo (see `example-app/tsconfig/strict-astro.baseline.json`) or grant CI a token that can read `my-org/dotagents`.
 
 ## Check commands (must fail CI / pre-commit on violations)
 
