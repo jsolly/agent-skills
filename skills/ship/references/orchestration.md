@@ -53,6 +53,7 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 | --- | --- | --- | --- |
 | **`vercel-static`** | Root `AGENTS.md` declares `ship profile: vercel-static`, **or** infer: `vercel.json` and/or Vercel Git-linked project; static Astro/Svelte/Next export; no `aws/`, no DB migration tooling | **light** | **Verify** production deploy — do **not** run manual `vercel deploy --prod` when Git integration owns production deploys on push to `main`. See `references/deploy-rules.md` → Vercel Git integration. |
 | **`aws-sam`** | `AGENTS.md` declares `aws-sam`, **or** `aws/template.yaml` + fleet SAM pattern (GitHub `deploy.yml` and/or `deploy:code`) | **full** | Confirm GitHub Actions deploy (my-org fleet) or break-glass `deploy:code` (STA); surface `deploy:infra` for human when infra paths changed |
+| **`heroku-git`** | `AGENTS.md` declares `heroku-git` / Heroku GitHub auto-deploy from `main` | full or light by diff size | After merge, verify Heroku release (`npx heroku releases`) |
 | **`gate-only`** | Pre-commit gate wired, no deploy entry (e.g. `dotagents`) | full or light by diff size | `deploy: none` |
 | **`docs-config`** | Markdown/config-only diff, no runtime code | **skipped** (trivial fan-out) | Usually none |
 
@@ -68,15 +69,15 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 
 | Model | Detect (in order) | Step 11 |
 | --- | --- | --- |
-| **`pr-auto-merge`** (fleet default) | Default unless AGENTS.md declares `Integration: direct-push`; or `## Ship` mentions PR + auto-merge / CI-gated merge; or `.github/workflows/auto-merge.yml` exists | Push branch → `gh pr create` → verify auto-merge → see `references/pr-integration.md` |
+| **`pr-auto-merge`** (fleet default) | Default unless AGENTS.md declares `Integration: direct-push`; or `## Ship` mentions PR + auto-merge / CI-gated merge; or `.github/workflows/auto-merge.yml` exists | Push branch → `DOTAGENTS_SHIP=1 gh pr create` → arm auto-merge → babysit CI → merge → see `references/pr-integration.md` |
 | **`direct-push`** | Explicit `Integration: direct-push` in AGENTS.md | `git push origin HEAD:main` (current behavior) |
 
 **CI owner (`{CI_OWNER}`)** — classify in step 3 with ship profile and integration model. Full detail: `references/ci-owner.md`.
 
 | Owner | Detect | Agent responsibility |
 | --- | --- | --- |
-| **`local`** (fleet default) | Default unless `CI owner: github-handoff` in `## Ship` | Full local gate before push; open PR + arm auto-merge; **stop** — fire-and-forget (no CI watch, no fix-red-PR loop) |
-| **`github-handoff`** | `CI owner: github-handoff` in `## Ship` (example-app only today) | Cheap local subset only; open PR + arm auto-merge; **stop** — fire-and-forget (no CI watch, no fix-red-PR loop) |
+| **`local`** (fleet default) | Default unless `CI owner: github-handoff` in `## Ship` | Full local gate before push; open PR; **required babysit** — watch CI, fix red (cap 3), merge |
+| **`github-handoff`** | `CI owner: github-handoff` in `## Ship` (example-app only today) | Cheap local subset only; open PR; **same required babysit** (CI is slow — still watch and fix) |
 
 **Review tier override** — escalate to **full** fleet when the diff touches any of: `aws/`, `infra/`, IaC paths, migrations, IAM/secrets handling, auth/provider clients, or cross-cutting lib refactors — even on a `vercel-static` repo.
 
@@ -273,13 +274,10 @@ Follow **`references/pr-integration.md`** §11:
 
 - Ensure on a feature branch (create from `origin/main` if on `main`).
 - `git push -u origin HEAD` — never `HEAD:main`.
-- `gh pr create` (or use existing PR for branch).
-- `gh pr edit --add-label ship-auto-merge` then `gh pr merge --auto --squash` (orchestrated PRs only).
-- Verify auto-merge armed (`gh pr view --json autoMergeRequest`).
+- `DOTAGENTS_SHIP=1 gh pr create` (or use existing PR for branch).
+- `gh pr edit --add-label ship-auto-merge` then `gh pr merge --auto --squash` (orchestrated PRs only); verify auto-merge armed.
 
-When **`{CI_OWNER}` = `github-handoff`**, **stop after this subsection** — steps 12–13 are skipped. Step 14: **`PR opened — GitHub CI handoff`**.
-
-Cap push-fix at 3 cycles (local gate only — not post-PR CI fixes when `github-handoff`).
+Always continue to steps 12–13 (babysit). Cap push-fix at 3 cycles (local gate before push). Cap the post-PR fix-red loop at 3 cycles (see `pr-integration.md` §12).
 
 ### `{INTEGRATION_MODEL}` = `direct-push`
 
@@ -291,7 +289,7 @@ The destination is always `main`. The current branch name doesn't matter — the
 
 ## 12. Deploy or verify (branch on `{SHIP_PROFILE}` and `{INTEGRATION_MODEL}`)
 
-Step 12 is **profile-specific**. Read `references/deploy-rules.md` first. When `{INTEGRATION_MODEL}` is `pr-auto-merge`, **skip step 12 entirely** (fire-and-forget — merge, deploy, and verification happen out-of-session) unless the user explicitly asks to babysit; see `references/pr-integration.md` §12. The profile subsections below apply to `direct-push` ships and explicit babysit requests.
+Step 12 is **profile-specific**. Read `references/deploy-rules.md` first. On every PR ship (either CI owner): **required** watch CI → fix red → merge — see `references/pr-integration.md` §12. Post-merge deploy verify runs after merge lands.
 
 ### `vercel-static`
 
@@ -310,7 +308,7 @@ Manual `npx vercel --prod` is **fallback only** when `{POST_PUSH_DEPLOYS}` or AG
 
 my-org SAM fleet (shared-infra, todoist-backlog-scheduler, misc-notifications, personal-memory) and example-app deploy code via **GitHub Actions** (`.github/workflows/deploy.yml`) after merge — do **not** run local `deploy:code` on PR ships. Local `deploy:code` is **break-glass only** where AGENTS.md still documents it (example-app).
 
-1. Confirm the GitHub Deploy workflow (or break-glass local entry) after push/merge lands when babysitting.
+1. Confirm the GitHub Deploy workflow (or break-glass local entry) after push/merge lands — babysit with `gh run watch`.
 2. Watch for success signal (workflow green, Lambda updated).
 3. **Infra deploy** (`npm run deploy:infra`) — **never auto-run**; surface for human when infra paths changed.
 4. Post-deploy live verification when diff affects external providers (Lambda invoke, etc.) — see `deploy-rules.md`.
@@ -328,13 +326,11 @@ Note deploy/verify outcome. If verification/deploy could not be brought to green
 
 ### `{INTEGRATION_MODEL}` = `pr-auto-merge`
 
-When **`{CI_OWNER}` = `github-handoff`:** skip — integration confirmation is not the agent's job; handoff completed at step 11.
-
-When **`{CI_OWNER}` = `local`:** follow `references/pr-integration.md` §13:
+Follow `references/pr-integration.md` §13:
 
 - Fetch `origin/main`; when merged, confirm shipped SHA is reachable from `origin/main`.
 - Record `CI: GitHub Actions (<required check>)` when checks ran on PR/`main`.
-- If PR still open: record pending state — do not claim merged.
+- If PR still open: keep babysitting or record pending/failed — do not claim merged.
 
 ### `{INTEGRATION_MODEL}` = `direct-push`
 
@@ -352,8 +348,7 @@ After steps 10–13 complete, send **one closing message** to the user. This is 
 | --- | --- |
 | PR merged + deploy OK | **`PR merged to main`** — PR URL, SHA, `Ship profile`, `Review tier`, deploy outcome, `CI: GitHub Actions` |
 | PR open, auto-merge queued | **`PR open — auto-merge pending CI`** — PR URL, check status |
-| PR open, GitHub CI handoff | **`PR opened — GitHub CI handoff`** — PR URL, auto-merge armed or not; CI runs in GitHub (~12 min on example-app) |
-| PR CI failed | **`Not merged`** — which check failed |
+| PR CI failed | **`Not merged`** / **`Not ready`** — which check failed |
 | Full success (direct-push, Vercel verified) | **`Shipped to main`** — SHA, `Ship profile: vercel-static`, `Review tier: light`, `deploy: verified at https://…`, `CI: none (local gate)` |
 | Full success (direct-push, AWS deploy) | **`Shipped to main`** — SHA, `Ship profile: aws-sam`, `Review tier: full`, `deploy:code succeeded`, `CI: none (local gate)` |
 | Direct-push OK, gate-only | **`Shipped to main`** — `deploy: none`, `CI: none (local gate)` |
@@ -361,7 +356,7 @@ After steps 10–13 complete, send **one closing message** to the user. This is 
 | Gate failed or push rejected | **`Not pushed`** / **`Not merged`** — which check failed |
 | Stopped on findings | **`Stopped — not pushed`** — reference step-8 verdict |
 
-Include in every successful summary: **`Ship profile`**, **`Review tier: light|full|skipped`**, **`Integration model`**, **`CI owner`**, deploy/verify outcome (or "handoff" when `github-handoff`), CI line.
+Include in every successful summary: **`Ship profile`**, **`Review tier: light|full|skipped`**, **`Integration model`**, **`CI owner`**, deploy/verify outcome, CI line.
 
 Then: TL;DR of the change, gate checks run (tests / lint / the pre-commit gate battery), deploy outcome, `CI: none (local gate)`, worktree cleanup outcome (step 15), and unresolved Important findings if you pushed despite them (should be rare).
 
@@ -383,9 +378,9 @@ Many tasks land via **`/worktree`** + **`/ship`**: the worktree is a disposable 
 
 Step 15 applies when the ship ran from a **linked worktree** — `WORKTREE_PATH` ≠ the repo's primary checkout. This covers both harness-created worktrees (`~/.cursor/worktrees/`, `.claude/worktrees/`) and manual `git worktree add` checkouts (e.g. `~/code/.worktrees/<repo>/<name>/`); `git worktree list` shows them all, and the primary checkout is the one whose path holds a `.git` **directory** rather than a `.git` file. Ships from the **primary checkout** skip this step entirely.
 
-**Trigger timing depends on the integration path:**
+**Trigger timing depends on `{INTEGRATION_MODEL}`:**
 
-- **PR paths (both CI owners)** — cleanup runs **at PR creation** (end of step 11), gated on "branch pushed + worktree clean," **not** merge. Every PR ship is fire-and-forget (user decision 2026-06-30): merge happens out-of-session and no one forward-fixes red CI in-session, so deferring to merge orphans the worktree permanently. Use the PR-path override below instead of the merge-gated preconditions.
+- **`pr-auto-merge`** — cleanup runs **after merge lands** (the merge-gated preconditions below). The worktree may host a forward-fix while CI is red, so it must survive until `origin/main` has the commit.
 - **`direct-push`** — cleanup runs after the push lands (the push *is* the integration; the merge-gated preconditions below pass immediately).
 
 ### Preconditions (all must pass before removal)
@@ -395,26 +390,15 @@ Step 15 applies when the ship ran from a **linked worktree** — `WORKTREE_PATH`
 3. **Worktree is clean** — from `WORKTREE_PATH`, `git status --short` is empty (no uncommitted or unstaged changes).
 4. **No session-local stashes** holding unpushed work tied to this task (if the agent created a stash during conflict resolution, pop/apply or drop only after confirming its contents are on `main`).
 
-### PR-path override (cleanup at PR creation)
-
-For PR ships (both CI owners), replace preconditions 1–2 with the **pushed-not-merged** gate — run cleanup at the end of step 11, right after the PR is open and auto-merge is armed (or noted plan-gated):
-
-1. **PR opened + branch pushed** — `git push -u origin HEAD` succeeded and `gh pr create` returned a URL (auto-merge armed is expected but not required; an un-armable PR still has its commits safe on `origin`).
-2. **Worktree is clean** — from `WORKTREE_PATH`, `git status --short` is empty. This stays load-bearing: a worktree sitting at a pushed SHA can still hold an *unrelated* uncommitted change — never remove a dirty worktree.
-3. **No session-local stashes** (same as precondition 4 above).
-
-Do **not** wait for `git merge-base --is-ancestor <sha> origin/main` — it will be false in-session and is the wrong gate here. The branch ref persists on `origin` independent of the local worktree; if a background agent needs to forward-fix red CI, it re-checks-out the branch into a fresh worktree. Leave the **local branch ref** in place (the open PR points at `origin/<branch>`; deleting the local branch is harmless but unnecessary — do not delete it while the PR is open).
-
-To clean up: `cd` to the primary checkout (its `main`), then `git worktree remove <WORKTREE_PATH>` (never `--force` on a dirty tree). Then emit the step-14 handoff summary with `Worktree: removed <name>`.
-
 **Do not** sweep *other* sessions' orphaned worktrees during a ship — only remove the one this ship ran from. A pile of pre-existing orphans is a separate, user-initiated sweep (each may hold uncommitted background work).
 
 ### Defer cleanup when
 
 - Verdict was **`Not pushed`** or **`Stopped — not pushed`**
 - Push landed but deploy/verify failed and a forward-fix will happen **in the same worktree**
-- Working tree is dirty (uncommitted changes — applies to **both** CI owners)
-- **`direct-push`** and the pushed SHA is **not** on `origin/main` yet (does **not** apply to PR ships — see override above; there, "pushed" is the gate, not "merged")
+- Working tree is dirty (uncommitted changes)
+- **`pr-auto-merge`** and the shipped SHA is **not** on `origin/main` yet (still babysitting / fixing CI)
+- **`direct-push`** and the pushed SHA is **not** on `origin/main` yet
 - User explicitly asked to keep the worktree
 
 When deferring, say **`Worktree: kept (<reason>)`** and remind the user they can run **`/delete-worktree`** later.

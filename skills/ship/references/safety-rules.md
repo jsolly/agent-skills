@@ -1,4 +1,4 @@
-# Agent safety rules — git discipline + remaining shell guards
+# Agent safety rules — git discipline + shell guards
 
 ## Git safety (no `block-git` guard)
 
@@ -9,26 +9,28 @@ Git safety during `/ship` is **orchestrator discipline**, not a shell guard. The
 - Never `--no-verify` on commit (skips the repo pre-commit gate when wired). Never `--no-verify` on push either — even though the fleet gate no longer lives at push time, bypassing hooks is still forbidden.
 - Never `git push --force`, `--force-with-lease`, or `git reset --hard`.
 - Never `git add -A` or `git add .` — stage by name.
+- Never bare `gh pr create` — always `DOTAGENTS_SHIP=1 gh pr create` (step 11 / `pr-integration.md`).
 
 **Enforcement layers:**
 
 | Layer | Role |
 | --- | --- |
-| **`/ship` orchestrator** | Runs the gate explicitly before push; never bypasses with `--no-verify`. |
+| **`/ship` orchestrator** | Runs the gate explicitly before push; never bypasses with `--no-verify`; prefixes PR create with `DOTAGENTS_SHIP=1`. |
 | **Repo pre-commit hook** | Backstop when `core.hooksPath=.git-hooks` is wired — gate runs at every commit. |
+| **`block-pr-create-outside-ship`** | Denies bare `gh pr create` / `gh pull-request create` unless the segment carries `DOTAGENTS_SHIP=1`. |
 | **Human terminal** | Manual git outside agent sessions — outside this skill's scope. |
 
-Shell guards do **not** intercept git commands. Do not assume Cursor/Claude/Codex hooks will block `--no-verify` or force push.
+Shell guards do **not** intercept ordinary git commands (`commit` / `push` / `--no-verify`). Do not assume Cursor/Claude/Codex hooks will block `--no-verify` or force push.
 
-## Remaining shell guards (prod DB, stack teardown, CLAUDE.md)
+## Remaining shell guards (prod DB, stack teardown, PR create, CLAUDE.md)
 
-Mechanical blocks on prod DB migrations, infra teardown, and authoring into `CLAUDE.md` — not advisory.
+Mechanical blocks — not advisory.
 
 | Layer | Where | Covers |
 | --- | --- | --- |
-| **Home (laptop)** | `block-prod-db-migrations`, `block-stack-delete`, and `block-claude-md-write` wired into each tool's app-owned config by an agent following `host machine setup docs` | Local Cursor, Claude Code, and Codex sessions on any wired machine |
+| **Home (laptop)** | `block-prod-db-migrations`, `block-stack-delete`, `block-pr-create-outside-ship`, plus path/write guards `block-edit-on-main` and `block-claude-md-write`, wired into each tool's app-owned config by an agent following `host machine setup docs` | Local Cursor, Claude Code, and Codex sessions on any wired machine |
 
-The two shell guards are `block-prod-db-migrations` and `block-stack-delete`, plus the path/write guard `block-claude-md-write`. On a laptop host, run the doctor script to verify live wiring. Cloud VMs skip laptop doctor/guards.
+The three shell guards are `block-prod-db-migrations`, `block-stack-delete`, and `block-pr-create-outside-ship`, plus the path/write guards. On a laptop host, run the doctor script to verify live wiring. Cloud VMs skip laptop doctor/guards.
 
 Install or refresh symlinked skills/agents/rules:
 

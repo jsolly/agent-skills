@@ -49,7 +49,9 @@ Do not preload route-specific playbooks for item types the pass did not find.
    claim with `janitor-implementing`, implement in a worktree, run the repo gate, and invoke `/ship`
    with `Closes #<n>`. A `/ship` stop is a HOLD, never a bypass invitation.
 6. Parallelize independent deep work in separate worktrees; never overlap whole janitor passes.
-7. Emit the terse pass report and make the loop stop/continue decision. Do not watch deploys.
+7. Emit the terse pass report and make the loop stop/continue decision. Do not babysit
+   post-merge **production deploys** in this pass (fleet alerting owns those) — this is not a ban
+   on watching PR CI; green required checks before merge still apply.
 
 ## Hard stops
 

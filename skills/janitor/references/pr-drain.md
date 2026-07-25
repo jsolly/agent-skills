@@ -131,6 +131,6 @@ ExampleGeo/checkboxes/my-org-website; GitHub Actions / `deploy:code` on the SAM 
 on example-app). That's expected and acceptable **because the green gate means CI passed** — the
 same protection any merge relies on. An **implemented-issue** PR deploys on merge exactly like any
 other — its extra safety is that `/ship`'s review fleet ran before the merge (invariant 9). After
-merging, **do not** babysit or fix the deploy in this pass (the "assume background PR fixer" memory:
-fire-and-forget). A failed post-merge deploy is a separate concern surfaced by the fleet's own
-alerting, not this loop.
+merging, **do not** babysit or fix the **post-merge production deploy** in this pass. A failed
+deploy is a separate concern surfaced by the fleet's own alerting, not this loop. (Watching PR CI
+to green before merge is still required.)
