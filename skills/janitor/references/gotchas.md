@@ -49,5 +49,6 @@ when the owning route playbook does not resolve a recurring failure; it is not a
   unwrapped bare `/janitor` invokes `5m /janitor`.
 - **A long pass is expected.** Parallel deep work instead of imposing a cap. `/loop` is sequential,
   so the next tick waits rather than overlapping.
-- **Merge is fire-and-forget for deploy.** Production deploys commonly start after merge, but this
-  pass neither watches nor repairs them. Fleet alerting owns post-merge failures.
+- **Post-merge deploy is out of scope for this pass.** Production deploys commonly start after
+  merge; this pass neither watches nor repairs them (fleet alerting owns those). That is not a ban
+  on watching **PR CI** before merge — required checks must still be green.

@@ -1,6 +1,6 @@
 # Per-Project Deploy Entries — run explicitly by the skill in Step 12
 
-Step 12 behavior depends on **`{SHIP_PROFILE}`** and **`{INTEGRATION_MODEL}`** (see `orchestration.md` step 3, `ci-owner.md`). On **PR ships (either CI owner), skip step 12 entirely** — deploy is not agent-babysat (fire-and-forget) unless the user explicitly asks. On `direct-push` (and explicit babysit requests): **Vercel-Git static sites verify after the push/merge lands; my-org AWS SAM repos leave GitHub Actions `deploy.yml` to run (unwatched unless asked); example-app may still use break-glass local `deploy:code`.**
+Step 12 behavior depends on **`{SHIP_PROFILE}`**, **`{INTEGRATION_MODEL}`**, and **`{CI_OWNER}`** (see `orchestration.md` step 3, `ci-owner.md`). On every PR ship: watch CI → fix red → merge. After merge: **Vercel-Git static sites verify production URL; my-org AWS SAM repos babysit GitHub Actions `deploy.yml`; Heroku GitHub auto-deploy repos verify with `npx heroku releases`; example-app may still use break-glass local `deploy:code`.**
 
 ---
 
@@ -66,7 +66,7 @@ Also read `docs/deploy-gotchas.md` (or equivalent) for preconditions.
 ## How to run (step 12) — AWS repos
 
 1. Confirm step-11 push/merge succeeded.
-2. **my-org SAM fleet:** confirm GitHub Actions `deploy.yml` (babysit only if asked). **example-app break-glass:** resolve `npm run deploy:code` / `scripts/deploy.sh` when AGENTS.md says so. Gate-only → `deploy: none`.
+2. **my-org SAM fleet + STA:** babysit GitHub Actions `deploy.yml` after merge. **example-app break-glass:** resolve `npm run deploy:code` / `scripts/deploy.sh` only when AGENTS.md says so. Gate-only → `deploy: none`.
 3. Watch for success signal (workflow green, Lambda updated, etc.).
 4. Smoke-check when repo documents one.
 5. Post-deploy live verification when diff affects external providers (see below) — **aws-sam only**, not `vercel-static`.
@@ -115,7 +115,7 @@ Most common fleet pattern for personal projects with an `aws/` directory.
 
 ### Command (what runs)
 
-**Default (my-org fleet + STA):** GitHub Actions `deploy.yml` after merge — babysit with `gh run watch` only when asked.
+**Default (my-org fleet + STA):** GitHub Actions `deploy.yml` after merge — babysit with `gh run watch`.
 
 **Break-glass (example-app when AGENTS.md says so):**
 

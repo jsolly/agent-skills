@@ -59,16 +59,18 @@ For an issue that has passed triage and been claimed:
    repo's `AGENTS.md`/`package.json`) before trusting CI. Don't ship what you haven't run.
 4. **`/ship` it.** Invoke the `ship` skill from the worktree — it runs the review-agent fleet,
    **fixes verified findings or stops without pushing** (never opens a PR carrying an unaddressed
-   high-confidence finding), runs the gate, and opens the PR. Put **`Closes #<n>`** in the PR body
-   so the merge closes the issue. (The issue is already labelled `janitor-implementing` from the
-   claim step.) `/ship` is fire-and-forget for CI, so the PR now lives in the **PR arm** — a later
-   pass (or the rest of this one) merges it via the mergeStateStatus playbook once green.
+   high-confidence finding), runs the gate, opens the PR, babysits CI (watch + fix red), and merges
+   on `pr-auto-merge` repos. Put **`Closes #<n>`** in the PR body so the merge closes the issue.
+   (The issue is already labelled `janitor-implementing` from the claim step.) There is no
+   CI-watch handoff — if `/ship` is still running when this pass continues, wait for its
+   outcome; if a prior `/ship` left a green open PR (e.g. interrupted), finish via the PR arm
+   mergeStateStatus playbook.
 5. **The merge gate is the review fleet + green, together** (invariant 9). Because `/ship`
    fixes-or-stops, the HOLD trigger is **`/ship` stopping without a PR** (a finding it couldn't safely
    fix within its fix-loop): leave no dangling branch, comment the blocking finding on the issue,
-   report `IMPLEMENTED (held)`. When `/ship` *does* open the PR, merge it once CI is green — that PR,
-   by construction, carries no unaddressed high-confidence finding. Never route around a `/ship`
-   stop to "finish" the issue.
+   report `IMPLEMENTED (held)`. When `/ship` *does* open the PR on a `pr-auto-merge` repo, expect it
+   to land the merge itself. That PR, by construction, carries no unaddressed high-confidence
+   finding. Never route around a `/ship` stop to "finish" the issue.
 
 ## Escalation contract
 

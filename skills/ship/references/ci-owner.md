@@ -4,28 +4,27 @@ Classify in orchestration **step 3** alongside `{SHIP_PROFILE}` and `{INTEGRATIO
 
 Two models — **most fleet repos are `local`**; **example-app is the only `github-handoff` repo today**.
 
+**There is no fire-and-forget canon.** After the PR opens, `/ship` always watches CI and fixes red checks (cap 3), then merges when green. `{CI_OWNER}` controls only **how much of the battery runs locally before push** — not whether to babysit or merge.
+
 ## `local` (fleet default)
 
-**Who owns CI:** the agent runs the full battery locally before the push; after the PR opens, nobody in-session.
+**Who owns the pre-push battery:** the agent on the laptop (full gate).
 
 - Run the **full local gate** before push (pre-commit hook battery and/or repo `AGENTS.md` commands — tests, lint, build, typecheck). The pre-commit hook already ran at commit; `/ship` re-runs the gate explicitly.
-- On **`pr-auto-merge`:** open the PR, arm auto-merge, then **stop — fire-and-forget** (user decision 2026-06-30): do not watch CI, poll checks, re-push to fix red checks, or babysit merge/post-merge deploy — assume a background agent or a later `/janitor` pass lands failing PRs. Where auto-merge can't arm (plan-gated on private Free repos, e.g. `dotagents` — `gh pr merge --auto` fails with `enablePullRequestAutoMerge`; expected, not an error), still stop: note `auto-merge: unavailable (plan-gated)` and the PR waits for the user or a `/janitor` pass. Worktree cleanup fires at PR creation (orchestration step 15), same as `github-handoff`.
+- On **`pr-auto-merge`:** open the PR, arm auto-merge (or note plan-gated), then **babysit** GitHub **`CI / ci`** until green — fix forward on the branch if checks fail (cap 3 cycles), merge when green (auto-merge, or `gh pr merge --squash` when plan-gated), then verify post-merge deploy when applicable. Worktree cleanup waits until merge (orchestration step 15).
 - On **`direct-push`:** the push that lands **is** the CI (`CI: none (local gate)`).
 
 **Detect:** default when `## Ship` omits `CI owner:` or declares `CI owner: local`.
 
-**Fleet examples:** `dotagents`, `example-learn`, `my-org-website`, `checkboxes`.
+**Fleet examples:** `dotagents`, `example-learn`, `my-org-website`, `checkboxes`, `awesome-django-blog`.
 
 ## `github-handoff`
 
-**Who owns CI:** GitHub Actions after the PR is opened — not the agent session.
+**Who owns the heavy tests:** GitHub Actions (local gate is cheap only).
 
 - Local gate subset is **cheap only** (lint, types, static checks — whatever the repo documents). Unit tests, E2E, DB-backed tests, and full build run in GitHub CI only.
-- CI is **slow** (example-app ~12 minutes) — waiting in-session is wasteful.
-- After step 11 (branch pushed, PR opened, `ship-auto-merge` label + auto-merge armed): **stop**. Fire-and-forget.
-- **Do not:** `gh pr checks --watch`, poll CI, re-push to fix red checks, babysit merge, or babysit post-merge deploy — unless the user explicitly asks in this session.
-- **Worktree cleanup fires at PR creation, not merge.** If the ship ran from a linked worktree (not the primary checkout), `cd` back to the primary checkout's `main` and remove the worktree as soon as the PR is open + branch pushed — see orchestration **step 15**. Rationale: the branch is safe on `origin` the moment the PR exists, and no PR ship forward-fixes red CI in-session (fire-and-forget), so there is nothing to keep the worktree around for. Waiting for merge would orphan the worktree forever, since merge happens out-of-session.
-- Step 14: **`PR opened — GitHub CI handoff`** — PR URL, auto-merge armed or not. Do not claim merged. Add `Worktree: removed <name>` when cleanup ran.
+- CI is **slow** (example-app ~12 minutes) — still babysit: watch with `gh pr checks --watch`, fix red checks, merge when green (same as `local`). Budget session time accordingly.
+- Worktree cleanup waits until merge (orchestration step 15), same as `local`.
 
 **Detect:** `CI owner: github-handoff` in root `AGENTS.md` `## Ship`.
 
@@ -35,19 +34,19 @@ Two models — **most fleet repos are `local`**; **example-app is the only `gith
 
 | Integration | `local` | `github-handoff` |
 | --- | --- | --- |
-| `pr-auto-merge` | Full gate locally → PR → **hand off** | Cheap local subset → PR → **hand off** |
-| `direct-push` | Gate locally → push → deploy verify | Rare; still run cheap local subset; do not babysit `main` CI unless user asks |
+| `pr-auto-merge` | Full gate → PR → babysit CI → merge → deploy verify | Cheap local subset → PR → babysit CI → merge → deploy verify |
+| `direct-push` | Gate → push → deploy verify | Rare; cheap subset then push; babysit `main` CI if Actions run |
 
 ## Repo declaration (copy into `## Ship`)
 
 **Most repos:**
 
 ```markdown
-**CI owner: local.** Agent runs the full local gate before push; after the PR opens, stop — do not watch or fix PR CI in-session.
+**CI owner: local.** Agent runs the full local gate before push; `/ship` babysits GitHub CI on the PR until merge (watch failures and fix forward).
 ```
 
-**GitHub CI handoff (example-app pattern):**
+**GitHub owns the heavy battery (example-app pattern):**
 
 ```markdown
-**CI owner: github-handoff.** GitHub Actions owns the full test battery (~12 min). Local gate subset is lint/types/static only. After `/ship` opens the PR and arms auto-merge, stop — do not watch or fix CI to force merge.
+**CI owner: github-handoff.** GitHub Actions owns the full test battery (~12 min). Local gate subset is lint/types/static only. After `/ship` opens the PR, still babysit CI until merge (watch failures and fix forward).
 ```
