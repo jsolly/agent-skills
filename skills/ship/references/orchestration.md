@@ -275,7 +275,7 @@ Follow **`references/pr-integration.md`** §11:
 - Ensure on a feature branch (create from `origin/main` if on `main`).
 - `git push -u origin HEAD` — never `HEAD:main`.
 - `DOTAGENTS_SHIP=1 gh pr create` (or use existing PR for branch).
-- `gh pr edit --add-label ship-auto-merge` then `gh pr merge --auto --squash` (orchestrated PRs only); verify auto-merge armed.
+- `gh pr merge --auto --squash`; verify auto-merge armed.
 
 Always continue to steps 12–13 (babysit). Cap push-fix at 3 cycles (local gate before push). Cap the post-PR fix-red loop at 3 cycles (see `pr-integration.md` §12).
 

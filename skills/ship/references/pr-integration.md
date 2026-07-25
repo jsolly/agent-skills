@@ -17,9 +17,8 @@ Use this path when the repo integrates via **branch → PR → CI-gated auto-mer
    - **`github-handoff`:** cheap local subset only (repo `AGENTS.md` — typically lint/types/static). Do **not** run unit/E2E or local DB tests as a merge gate; GitHub CI owns those.
 3. **`git push -u origin HEAD`** — never `HEAD:main`, never `--no-verify`.
 4. **Open PR** — `DOTAGENTS_SHIP=1 gh pr create` with title + body (Summary bullets + Test plan checklist). The `DOTAGENTS_SHIP=1` prefix is required: `block-pr-create-outside-ship` denies bare `gh pr create` so agents cannot skip this skill. If a PR already exists for this branch, skip create and use `gh pr view` (no allow prefix needed).
-5. **Auto-merge (orchestrated PRs only)** — opt in explicitly on PRs **you** opened via `/ship`; never label or arm auto-merge on third-party PRs:
-   - `gh pr edit --add-label ship-auto-merge`
-   - `gh pr merge --auto --squash` (arms immediately; label-gated `auto-merge.yml` re-arms on sync)
+5. **Auto-merge** — arm on PRs **you** opened (human or agent using your credentials); never arm third-party/Dependabot PRs:
+   - `gh pr merge --auto --squash` (arms immediately; owner/member-gated `auto-merge.yml` re-arms on sync)
    - Verify: `gh pr view --json autoMergeRequest,state,url`
    - If arming fails with `Auto merge is not allowed for this repository` — a **plan gate** on private Free repos (e.g. `dotagents`), not an error — note `auto-merge: unavailable (plan-gated)` for step 14. Continue to §12: babysit CI, then merge manually with `gh pr merge --squash` once green. (`auto-merge.yml`'s check failing on such repos is expected noise, not a regression.)
 6. **Cap push-fix at 3 cycles** — applies to the **local gate** before push only. The post-PR fix-red loop is separate (§12, also capped at 3).
