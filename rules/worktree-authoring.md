@@ -64,7 +64,7 @@ dotagents prescribes *that* you author in a worktree, not the low-level plumbing
 A skill whose changes **integrate via `/ship`** (branch → PR → merge) states, near its top: *author
 in a worktree off `main` (see `rules/worktree-authoring.md`)*. It does not re-explain the mechanism —
 this rule is the single source. Carriers today: `refactor`, `seo`, `shared-infra-integration`,
-`optimize-workspace` (and its `/memory-to-config` redirect), and `ship` (the integrator itself).
+`optimize-workspace`, and `ship` (the integrator itself).
 
 Two classes edit repo files but do **not** carry the pointer, because they isolate through their own
 mechanism and don't integrate via `/ship`:
