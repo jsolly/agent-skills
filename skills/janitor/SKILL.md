@@ -19,6 +19,9 @@ green, review-fleet, and HOLD gates.
 - **`/janitor once`:** run one pass without arming a loop.
 - **Drain termination:** stop the loop when zero actionable authorized items remain, including when
   every remaining item is HELD for a human. Keep looping while any item can advance next pass.
+- **Schedule footer:** every pass report (and the initial arming confirmation) includes last-run and
+  next-run times in the machine's local clock, the armed interval, and whether the loop is
+  unbounded-until-drain or a fixed pass count (`references/reporting-and-loop.md`).
 - Read `references/reporting-and-loop.md` for exact loop, launchd, drain, and reporting decisions.
 
 ## Required progressive loading
@@ -49,9 +52,10 @@ Do not preload route-specific playbooks for item types the pass did not find.
    claim with `janitor-implementing`, implement in a worktree, run the repo gate, and invoke `/ship`
    with `Closes #<n>`. A `/ship` stop is a HOLD, never a bypass invitation.
 6. Parallelize independent deep work in separate worktrees; never overlap whole janitor passes.
-7. Emit the terse pass report and make the loop stop/continue decision. Do not babysit
-   post-merge **production deploys** in this pass (fleet alerting owns those) — this is not a ban
-   on watching PR CI; green required checks before merge still apply.
+7. Emit the terse pass report (including the schedule footer: last/next local times, cadence,
+   bound) and make the loop stop/continue decision. Do not babysit post-merge **production
+   deploys** in this pass (fleet alerting owns those) — this is not a ban on watching PR CI; green
+   required checks before merge still apply.
 
 ## Hard stops
 
@@ -70,5 +74,6 @@ Do not preload route-specific playbooks for item types the pass did not find.
 - `references/pr-drain.md` — discovery, classification, self PRs, merge states/mechanics, deploy stance.
 - `references/dependabot-upgrades.md` — changelog review, majors, migration tools, prep persistence.
 - `references/issue-triage.md` — idempotency, claim, worktree implementation, `/ship`, escalation.
-- `references/reporting-and-loop.md` — bounding, output contract, loop arming/termination, wiring.
+- `references/reporting-and-loop.md` — bounding, output contract (incl. schedule footer), loop
+  arming/termination, wiring.
 - `references/gotchas.md` — recurring fleet, GitHub-state, mergeability, and lifecycle failures.

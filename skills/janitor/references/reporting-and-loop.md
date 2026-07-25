@@ -21,7 +21,9 @@ Read this file before dispatching concurrent deep work and before ending every p
 
 ## Reporting contract
 
-End each pass with a terse, scannable summary — this runs every 5 minutes, so no walls of text:
+End each pass with a terse, scannable summary — this runs every 5 minutes, so no walls of text.
+**Every pass report ends with a schedule footer** (Schedule footer below) so the user can see last
+run, next run, cadence, and whether the loop is bounded — without asking.
 
 ```text
 Janitor pass — <n> repos, <m> authorized items (<p> PRs, <i> issues)
@@ -37,15 +39,50 @@ Janitor pass — <n> repos, <m> authorized items (<p> PRs, <i> issues)
   HELD         my-org/checkboxes#93 (issue) "make it faster" — too vague to implement; asked which flow + target on the issue
   SKIPPED      my-org/<repo>#NN            author @thirdparty (not authorized)
 Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 0 errors.
+Schedule: last 2026-07-25 09:12:04 EDT · next 2026-07-25 09:17:04 EDT · every 5m · unbounded (until drain)
 ```
 
 If nothing was actionable but work is still in flight (ARMED pending CI, deferred conflicts,
-IMPLEMENTED PRs pending CI, UNKNOWN mergeability), one line — the loop keeps ticking:
-`Janitor: N authorized items, all armed/in-flight, nothing to do this pass.`
+IMPLEMENTED PRs pending CI, UNKNOWN mergeability), one line plus the schedule footer — the loop
+keeps ticking:
+
+```text
+Janitor: N authorized items, all armed/in-flight, nothing to do this pass.
+Schedule: last 2026-07-25 09:12:04 EDT · next 2026-07-25 09:17:04 EDT · every 5m · unbounded (until drain)
+```
 
 If the backlog is **drained** — zero authorized open items, or every remaining one is HELD for a
-human — one line and stop the loop (see Loop termination):
-`Janitor: backlog drained — 0 actionable items (M held for human). Loop stopped.`
+human — one line, stop the loop (see Loop termination), and a schedule footer with no next run:
+
+```text
+Janitor: backlog drained — 0 actionable items (M held for human). Loop stopped.
+Schedule: last 2026-07-25 09:12:04 EDT · next none (loop stopped) · was every 5m · stopped after drain
+```
+
+### Schedule footer
+
+Append exactly one `Schedule:` line after the summary (or after the single-line idle/drained
+report). Resolve times with the machine's local clock — run
+`date '+%Y-%m-%d %H:%M:%S %Z'` at report time; never UTC-only and never omit the zone.
+
+| Field | How to fill it |
+| --- | --- |
+| **last** | Local wall time when this pass's report is emitted (the `date` output above). |
+| **next** | If the armed loop will tick again: `last + interval` in the same local format. If `/janitor once`, launchd-unloaded, or drain-stopped: `none (<reason>)` — e.g. `none (once)`, `none (loop stopped)`. |
+| **every / cadence** | The interval the active loop is following (`every 5m` for the default self-armed loop). For `/janitor once`: `once` (no cadence). For a deliberate launchd agent: `every 300s (launchd)` (or whatever `StartInterval` is armed). If the loop just stopped: `was every 5m`. |
+| **bound** | Default self-armed loop: `unbounded (until drain)` — no iteration cap; drain termination stops it. `/janitor once`: `1 pass`. A user-armed `/loop` with an explicit count (if any) reports that count; otherwise treat as unbounded until drain/stop. Stopped: `stopped after drain` (or `stopped by user`). |
+
+Examples:
+
+```text
+Schedule: last 2026-07-25 09:12:04 EDT · next 2026-07-25 09:17:04 EDT · every 5m · unbounded (until drain)
+Schedule: last 2026-07-25 09:12:04 EDT · next none (once) · once · 1 pass
+Schedule: last 2026-07-25 09:12:04 EDT · next none (loop stopped) · was every 5m · stopped after drain
+```
+
+When first arming the bare-`/janitor` loop (before/as the first pass runs), include the same four
+facts in the short arming confirmation so the user sees cadence and bound even before a full
+pass report.
 
 ## Running it
 
@@ -56,9 +93,12 @@ Each iteration is one pass; the cadence is armed automatically:
   the prompt). If it is, just run the pass and exit — the loop provides the next tick; **never arm
   a second loop.** If it is not, arm the cadence by invoking the `loop` skill with args
   `5m /janitor`, and let the loop's first iteration run the first pass (don't also run one
-  inline — no double pass). Re-runs every 5 min while the session is open; a drained pass stops it
-  automatically (Loop termination below), or stop it any time with the loop's own control.
-- **One-shot:** `/janitor once` — run a single pass, arm nothing.
+  inline — no double pass). Re-runs every 5 min while the session is open (**unbounded until
+  drain** — no iteration cap); a drained pass stops it automatically (Loop termination below), or
+  stop it any time with the loop's own control. Confirm arming with the schedule footer fields
+  (last/next local times, `every 5m`, unbounded until drain).
+- **One-shot:** `/janitor once` — run a single pass, arm nothing. Still emit the schedule footer
+  (`next none (once)` · `once` · `1 pass`).
 - **True background (unattended):** wrap a headless run in a launchd agent, e.g. a
   `~/Library/LaunchAgents/com.my-org.janitor.plist` firing
   `claude -p "/janitor once"` on a 300s `StartInterval` (use `once` so each firing doesn't try
