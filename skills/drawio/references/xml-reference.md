@@ -2,9 +2,11 @@
 
 Detailed reference for styles, edge routing, containers, layers, tags, metadata, and dark mode. Consult this when generating draw.io XML diagrams.
 
+This skill writes **native `.drawio` files** opened in draw.io desktop. There is no `create_diagram`, `search_shapes`, `routing`, or `postLayout` API — place nodes on the rigid grid, declare edges, and write well-formed XML.
+
 ## Reasoning budget (read this first)
 
-Your job is to declare the **logical structure** of the diagram — what nodes exist, what edges connect them, what labels they carry, what lane/container groups them. draw.io's edge router and (when available) a post-layout pass handle routing and placement; you do **not** need to do layout math.
+Your job is to declare the **logical structure** of the diagram — what nodes exist, what edges connect them, what labels they carry, what lane/container groups them. You do **not** need to do layout math or hand-route edges.
 
 **Do NOT** in your reasoning:
 
@@ -13,7 +15,7 @@ Your job is to declare the **logical structure** of the diagram — what nodes e
 - Do NOT compute x/y coordinates in prose. No "column spacings of 160px totaling 1840px width — that's too wide, let me tighten to 1700…" loops. Use the rigid grid below; do the arithmetic in your head and write the XML.
 - Do NOT re-derive drawio mechanics (`horizontal=0`, `startSize=110`, nested-lane coordinates). Use the templates below as-is.
 - Do NOT enumerate columns ("customer lane columns 0-10, web app 1-7"). Place a node, move on.
-- Do NOT add `<Array as="points">` waypoints. Edges are routed automatically.
+- Do NOT add `<Array as="points">` waypoints. Declare `source` and `target` only.
 - Do NOT set `exitX` / `exitY` / `entryX` / `entryY` connection-point overrides unless you have specific geometric intent.
 - Do NOT verify, re-check, or adjust coordinates after placing a node.
 - Do NOT narrate "building the diagram / finalizing the XML / now let me…". Just emit XML.
@@ -31,36 +33,39 @@ Your job is to declare the **logical structure** of the diagram — what nodes e
 - Row y = `row_index * 120 + 40`     (row 0 = 40, row 1 = 160, row 2 = 280, …)
 - Node size: rectangles `140×60`, diamonds `140×80`, circles `60×60`, documents `120×80`, cylinders `100×70`
 
-Pick a `(col, row)` for each node. Don't think about centers, gaps, or overlap — ELK handles routing between rough positions. Slight misalignment is invisible in the result.
+Pick a `(col, row)` for each node. Don't think about centers, gaps, or overlap — slight misalignment is fine. Keep connected nodes in adjacent columns/rows with open space between them so the basic router does not draw edges through boxes.
 
 ## General principles
 
-- **Use proper draw.io shapes and connectors** — choose the semantically correct shape for each element (e.g., `shape=cylinder3` for databases and tanks, `rhombus` for decisions, `shape=mxgraph.pid2valves.*` for valves in P&IDs). draw.io has extensive shape libraries; prefer domain-appropriate shapes over generic rectangles.
-- **Decide whether to search for shapes** — before generating a diagram, decide if it needs domain-specific shapes from draw.io's extended libraries. **Skip `search_shapes`** for standard diagram types that use basic geometric shapes: flowcharts, UML (class, sequence, state, activity), ERD, org charts, mind maps, Venn diagrams, timelines, wireframes, and any diagram using only rectangles, diamonds, circles, cylinders, and arrows. Also skip if the user explicitly asks to use basic/simple shapes or says not to search. **Use `search_shapes`** when the diagram requires industry-specific or branded icons: cloud architecture (AWS, Azure, GCP), network topology (Cisco, rack equipment), P&ID (valves, instruments, vessels), electrical/circuit diagrams, Kubernetes, BPMN with specific task types, or any domain where the user expects realistic/standardized symbols rather than labeled boxes.
+- **Use proper draw.io shapes and connectors** — choose the semantically correct shape for each element (e.g., `shape=cylinder3` for databases, `rhombus` for decisions, `shape=mxgraph.pid2valves.*` for valves in P&IDs). Prefer domain-appropriate shapes over generic rectangles.
+- **Basic shapes by default; `mxgraph.*` for domain icons** — flowcharts, UML, ERD, org charts, mind maps, timelines, and wireframes use core shapes (rectangle, rhombus, ellipse, cylinder3, etc.). For industry/branded icons (AWS, Azure, GCP, Cisco, Kubernetes, BPMN task types, P&ID), set `shape=mxgraph.<library>.…` from the [style reference](https://github.com/jgraph/drawio-mcp/blob/main/shared/style-reference.md) — common prefixes: `mxgraph.aws4.*`, `mxgraph.azure.*`, `mxgraph.gcp2.*`, `mxgraph.cisco.*`, `mxgraph.kubernetes.*`, `mxgraph.bpmn.*`, `mxgraph.flowchart.*`. There is no shape-search tool in this skill.
 - **Match the language of labels to the user's language** — if the user writes in German, French, Japanese, etc., all diagram labels, titles, and annotations should be in that same language.
+- **Group related nodes, and surface a hub when edges converge** — put nodes that belong together inside a container or swimlane, and keep external actors (users, files, third-party systems) outside implementation containers. When many edges converge on one area or cross several groups, route them through a single hub/gateway node (a registry, broker, event log, …) instead of drawing every low-level dependency across the canvas — fewer crossings, clearer contract.
+- **Encode secondary detail in node text, not edges** — draw an edge only when the relationship itself carries meaning; push incidental detail into the node label so the connector layer stays readable.
+- **Default pastel color pairs** (fill / stroke) for non-lane nodes — pick from this list in order; do not invent neon colors: `#dae8fc/#6c8ebf` (blue), `#d5e8d4/#82b366` (green), `#ffe6cc/#d79b00` (orange), `#fff2cc/#d6b656` (yellow), `#e1d5e7/#9673a6` (purple), `#f8cecc/#b85450` (red).
 
 ## Common styles
 
 **Rounded rectangle:**
 
 ```xml
-<mxCell id="2" value="Label" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-  <mxGeometry x="100" y="100" width="120" height="60" as="geometry"/>
+<mxCell id="2" value="Label" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+  <mxGeometry x="100" y="100" width="140" height="60" as="geometry"/>
 </mxCell>
 ```
 
 **Diamond (decision):**
 
 ```xml
-<mxCell id="3" value="Condition?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-  <mxGeometry x="100" y="200" width="120" height="80" as="geometry"/>
+<mxCell id="3" value="Condition?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+  <mxGeometry x="100" y="200" width="140" height="80" as="geometry"/>
 </mxCell>
 ```
 
 **Arrow (edge):**
 
 ```xml
-<mxCell id="4" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="2" target="3" parent="1">
+<mxCell id="4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;" edge="1" source="2" target="3" parent="1">
   <mxGeometry relative="1" as="geometry"/>
 </mxCell>
 ```
@@ -68,7 +73,7 @@ Pick a `(col, row)` for each node. Don't think about centers, gaps, or overlap �
 **Labeled arrow:**
 
 ```xml
-<mxCell id="5" value="Yes" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="3" target="6" parent="1">
+<mxCell id="5" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;" edge="1" source="3" target="6" parent="1">
   <mxGeometry relative="1" as="geometry"/>
 </mxCell>
 ```
@@ -95,6 +100,8 @@ Pick a `(col, row)` for each node. Don't think about centers, gaps, or overlap �
 | `pointerEvents=0` | 0 or 1 | Prevent container from capturing child connections |
 | `html=1` | 0 or 1 | Enable HTML rendering in labels (required for `<b>`, `<br>`, `<font>`, etc.) |
 | `shape=umlLifeline;perimeter=lifelinePerimeter;size=16` | shape | UML sequence diagram lifeline (size = header height) |
+
+Style strings conventionally **end with a semicolon**.
 
 ## HTML labels
 
@@ -125,16 +132,15 @@ HTML in attribute values must be **XML-escaped**: `<` → `&lt;`, `>` → `&gt;`
 </mxCell>
 ```
 
-**Edge routing is automatic.** After the diagram renders, the viewer runs an ELK edge-routing pass that pins vertices and recomputes bend points + connection points. You do **not** need to:
+**Don't hand-route edges.** Just declare `source` and `target`. You do **not** need to:
 
 - Add `<mxPoint>` waypoints
 - Set `exitX` / `exitY` / `entryX` / `entryY`
-- Route around obstacles
-- Worry about edge-vertex collisions or parallel edge spacing
+- Route around obstacles by hand
 
-Just declare `source` and `target` and let ELK do the routing. The ELK pass also reverts itself if it made routing worse — so your edges are at worst unchanged, never worse.
+draw.io's built-in router is **basic**: each edge is a straight line or a simple right-angle path between `source` and `target`, with **no obstacle avoidance** — a wire will run straight across any box that sits between its endpoints. There is no post-layout or libavoid pass for files written by this skill. Place connected nodes with open space between them (adjacent grid cells), or accept that dense crossings may cut through shapes.
 
-**What you still choose: the edge style.** The style determines the overall look (orthogonal angles, curves, straight lines) — ELK honors the style family when routing.
+**What you still choose: the edge style.** The style determines the overall look (orthogonal angles, curves, straight lines).
 
 | Style | Syntax | Best for |
 | ------- | -------- | --------- |
@@ -146,13 +152,63 @@ Just declare `source` and `target` and let ELK do the routing. The ELK pass also
 
 **Use a consistent edge style within each diagram.** Pick one based on diagram type and apply it to all edges: ER → `entityRelationEdgeStyle`; UML class → straight; mind maps → curved; flowcharts/architecture/network → `orthogonalEdgeStyle`.
 
-**Useful edge style attributes** that apply regardless of routing:
+**Useful edge style attributes:**
 
 - `rounded=1` — rounded corners at bend points (recommended for orthogonal)
 - `endArrow=classic` / `endArrow=none` — arrow heads
 - `dashed=1` — dashed line
 - `strokeColor=#...`, `strokeWidth=2` — color/width
 - Edge labels: set `value` directly on the edge cell
+
+**Keep edge labels short and meaningful** — one to three words (`Yes`, `async`, `reads`). Drop labels that merely restate an obvious action (`call`, `register`); move longer explanations into node text or a small legend node.
+
+**Visual semantics — stay consistent, add a legend when mixing styles.** Within one diagram apply `dashed=1`, `strokeColor`, and `strokeWidth` consistently for one chosen meaning (e.g. dashed = optional / async / inferred relationship). Don't mix several dashed meanings without a small legend explaining them.
+
+### UML / ER arrow markers
+
+| Relationship | Style fragment |
+| --- | --- |
+| Inheritance / generalization | `endArrow=block;endFill=0;` |
+| Composition (owns) | `endArrow=diamond;endFill=1;` |
+| Aggregation (has) | `endArrow=diamond;endFill=0;` |
+| Association | `endArrow=none;` or `endArrow=open;` |
+| Many-to-one (ER) | `edgeStyle=entityRelationEdgeStyle;startArrow=ERmany;endArrow=ERone;` |
+
+## Sequence diagrams
+
+Use `umlLifeline` participants spaced horizontally. Messages are **straight** edges (no `edgeStyle`) with small arrowheads. Stack messages top-to-bottom by increasing `y` on the edge geometry via relative positioning — place lifelines on one row; message order is implied by vertical position of endpoints on the lifeline.
+
+```xml
+<mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=30;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+  <mxGeometry x="80" y="40" width="100" height="280" as="geometry"/>
+</mxCell>
+<mxCell id="p2" value="API" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=30;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+  <mxGeometry x="280" y="40" width="100" height="280" as="geometry"/>
+</mxCell>
+<mxCell id="p3" value="DB" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=30;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+  <mxGeometry x="480" y="40" width="100" height="280" as="geometry"/>
+</mxCell>
+<mxCell id="m1" value="POST /login" style="endArrow=block;endSize=6;startSize=6;html=1;verticalAlign=bottom;" edge="1" parent="1" source="p1" target="p2">
+  <mxGeometry relative="1" as="geometry">
+    <mxPoint x="130" y="100" as="sourcePoint"/>
+    <mxPoint x="330" y="100" as="targetPoint"/>
+  </mxGeometry>
+</mxCell>
+<mxCell id="m2" value="query user" style="endArrow=block;endSize=6;startSize=6;html=1;verticalAlign=bottom;" edge="1" parent="1" source="p2" target="p3">
+  <mxGeometry relative="1" as="geometry">
+    <mxPoint x="330" y="160" as="sourcePoint"/>
+    <mxPoint x="530" y="160" as="targetPoint"/>
+  </mxGeometry>
+</mxCell>
+<mxCell id="m3" value="200 OK" style="endArrow=open;endSize=6;startSize=6;dashed=1;html=1;verticalAlign=bottom;" edge="1" parent="1" source="p2" target="p1">
+  <mxGeometry relative="1" as="geometry">
+    <mxPoint x="330" y="220" as="sourcePoint"/>
+    <mxPoint x="130" y="220" as="targetPoint"/>
+  </mxGeometry>
+</mxCell>
+```
+
+Do NOT use `orthogonalEdgeStyle` for sequence messages. Do NOT nest messages inside lifelines (`parent="1"`). Return/async replies use `dashed=1`.
 
 ## Containers and groups
 
@@ -244,7 +300,7 @@ For diagrams with **nested groupings** — VPC → Availability Zone → EC2 ins
 - Every container is a `swimlane` with `startSize=24` (title area at the top).
 - Child cells set `parent="<container_id>"` and use coordinates **relative to their parent** (origin 0,0 is the parent's top-left, below the title).
 - Edges between cells in **different** containers must have `parent="1"` (not a container) — otherwise they render inside the container and get clipped.
-- For industry-specific icons (AWS/Azure/GCP logos, Cisco equipment, etc.), call `search_shapes` to get the exact `style` string and substitute it into a regular vertex — the container structure stays the same.
+- For industry-specific icons (AWS/Azure/GCP, Cisco, etc.), use `shape=mxgraph.…` from the style reference on a regular vertex — the container structure stays the same.
 
 ```xml
 <mxCell id="vpc" value="VPC" style="swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;" vertex="1" parent="1">
@@ -449,41 +505,6 @@ To enable dark mode color adaptation, the `mxGraphModel` element must include `a
 
 When generating diagrams, you generally do not need to specify dark-mode colors — the automatic inversion handles most cases. Use `light-dark()` only when the automatic inverse color is unsatisfactory.
 
-## Automatic edge routing
-
-Every XML diagram rendered in the viewer automatically runs an ELK (Eclipse Layout Kernel) edge-routing pass **after** the initial render:
-
-1. Vertex positions are pinned (the AI's placement is respected — no vertex moves).
-2. ELK recomputes bend points + connection points for every edge (orthogonal routing).
-3. A metric (edge-vertex intersections) compares before vs. after. If ELK made collisions worse, the edge routing is reverted to your original.
-4. The exported XML (copy/clipboard, "Open in draw.io") reflects whatever is finally shown — so downstream consumers also get the cleaned-up edges.
-
-You do not need to request this. Place vertices where they belong and write edges naively — the viewer handles connector cleanup.
-
-This also means: there is no server-side post-processing pass. What you generate is what the viewer starts with; the ELK pass is the only correction.
-
-## Post-layout (optional, overrides vertex positions)
-
-For cases where you want a **full** re-layout — moving vertices to canonical positions — set the optional `postLayout` parameter on `create_diagram`. Vertices animate (morph) from their original positions to the algorithm's layout.
-
-| Value | ELK algorithm | Best for |
-| ------- | --------------- | ---------- |
-| `verticalFlow` | `layered` (DOWN) | Flowcharts, process diagrams |
-| `horizontalFlow` | `layered` (RIGHT) | Pipelines, swim lanes |
-| `tree` | `mrtree` | Org charts, decision trees, hierarchies |
-| `force` | `force` | Networks without clear hierarchy |
-| `stress` | `stress` | Small-to-mid general graphs (usually tighter than force) |
-| `radial` | `radial` | Concentric layers around a root |
-
-**For XML diagrams: usually omit `postLayout`.** You authored the coordinates yourself, so the layout is already deliberate — the automatic edge-routing pass handles the rest. Set `postLayout` only when the user explicitly wants a canonical layout, or when you know vertex placement is significantly off.
-
-**For Mermaid diagrams: see the `postLayout` parameter description for when to set it.** Complex Mermaid flowcharts (≥ ~20 nodes, ≥ 3 decision diamonds, feedback edges, or ≥ 3 endpoints) need `postLayout: "verticalFlow"` (for `flowchart TD/TB`) or `"horizontalFlow"` (for `flowchart LR/RL`) — along with `startNodeIds` and `endNodeIds` — because the native parser's layout goes cramped or unbalanced past that threshold. Simple flowcharts and all non-flowchart Mermaid types (sequence, class, ER, sankey, …) need no `postLayout`.
-
-**When NOT to use (XML):**
-
-- The user has asked for specific positions (swim lanes with exact lanes, architecture diagrams with meaningful spatial arrangement).
-- The diagram relies on containers/grouping where spatial layout encodes information.
-
 ## Style reference
 
 Complete style reference (all shape types, style properties, color palettes, HTML labels, and more): <https://github.com/jgraph/drawio-mcp/blob/main/shared/style-reference.md>
@@ -497,3 +518,4 @@ When generating draw.io XML, the output **must** be well-formed XML:
 - **NEVER include ANY XML comments (`<!-- -->`) in the output.** XML comments are strictly forbidden — they waste tokens, can cause parse errors, and serve no purpose in diagram XML.
 - Escape special characters in attribute values: `&amp;`, `&lt;`, `&gt;`, `&quot;`
 - Always use unique `id` values for each `mxCell`
+- Prefer uncompressed XML (never `compressed="true"`)

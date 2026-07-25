@@ -1,12 +1,22 @@
 ---
 name: drawio
-description: Use when the user says `/drawio`, asks for a draw.io diagram, or wants an editable native .drawio XML file with optional PNG/SVG/PDF export. NOT for Mermaid-only diagrams, data-heavy charts, or editing an existing diagram without its source XML.
+description: Generate draw.io diagrams as native .drawio XML files, with optional CLI export to PNG/SVG/PDF.
 disable-model-invocation: true
 ---
 
 # Draw.io Diagram Skill
 
-Write native `.drawio` files (mxGraphModel XML). Optionally export to PNG, SVG, or PDF via the desktop CLI — exported files embed the diagram XML so they remain editable in draw.io.
+Write native `.drawio` files (`mxfile` XML). Optionally export to PNG, SVG, or PDF via the desktop CLI — exported files embed the diagram XML so they remain editable in draw.io. There is no Mermaid conversion, shape-search, or layout/routing API — generate XML directly.
+
+## Supported diagrams
+
+- **Standard** — flowcharts, org charts, mind maps, timelines, Venn diagrams
+- **Software** — UML (class, sequence, activity, use case), ERD, architecture
+- **Cloud / infra** — AWS, Azure, GCP, Kubernetes, network topology (use `shape=mxgraph.*`)
+- **Engineering** — electrical / digital logic, P&ID, floor plans
+- **Business** — BPMN, value streams, customer journeys, SWOT
+- **UI/UX** — wireframes, mockups, sitemaps
+- **Other** — data flows, decision trees, infographics
 
 ## Workflow
 
@@ -61,13 +71,19 @@ If the CLI isn't found, keep the `.drawio` file and tell the user.
 
 ## Minimal XML skeleton
 
+Prefer a proper `.drawio` wrapper (`mxfile` → `diagram` → `mxGraphModel`). Bare `mxGraphModel` often opens in desktop, but the wrapper is the real file shape.
+
 ```xml
-<mxGraphModel adaptiveColors="auto">
-  <root>
-    <mxCell id="0"/>
-    <mxCell id="1" parent="0"/>
-  </root>
-</mxGraphModel>
+<mxfile host="app.diagrams.net">
+  <diagram id="page-1" name="Page-1">
+    <mxGraphModel adaptiveColors="auto" grid="1" gridSize="10" page="1" pageWidth="850" pageHeight="1100">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
 ```
 
 Cell `0` is the root layer; cell `1` is the default parent. All diagram elements use `parent="1"` unless using multiple layers.
