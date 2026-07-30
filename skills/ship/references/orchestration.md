@@ -51,10 +51,10 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 
 | Profile | Detect (in order) | Review tier (default) | Step 12 |
 | --- | --- | --- | --- |
-| **`vercel-static`** | Root `AGENTS.md` declares `ship profile: vercel-static`, **or** infer: `vercel.json` and/or Vercel Git-linked project; static Astro/Svelte/Next export; no `aws/`, no DB migration tooling | **light** | **Verify** production deploy — do **not** run manual `vercel deploy --prod` when Git integration owns production deploys on push to `main`. See `references/deploy-rules.md` → Vercel Git integration. |
-| **`aws-sam`** | `AGENTS.md` declares `aws-sam`, **or** `aws/template.yaml` + fleet SAM pattern (GitHub `deploy.yml` and/or `deploy:code`) | **full** | Confirm GitHub Actions deploy (my-org fleet) or break-glass `deploy:code` (STA); surface `deploy:infra` for human when infra paths changed |
-| **`heroku-git`** | `AGENTS.md` declares `heroku-git` / Heroku GitHub auto-deploy from `main` | full or light by diff size | After merge, verify Heroku release (`npx heroku releases`) |
-| **`gate-only`** | Pre-commit gate wired, no deploy entry (e.g. `dotagents`) | full or light by diff size | `deploy: none` |
+| **`vercel-static`** | Root `AGENTS.md` declares `ship profile: vercel-static`, **or** infer: `vercel.json` and/or Vercel Git-linked project; static Astro/Svelte/Next export; no `aws/`, no DB migration tooling | **light** | **Verify** production deploy — Vercel READY **and** `x-release-id` ≥ merge SHA. Do **not** run manual `vercel deploy --prod` when Git integration owns production. See `references/deploy-rules.md` + `references/release-id.md`. |
+| **`aws-sam`** | `AGENTS.md` declares `aws-sam`, **or** `aws/template.yaml` + fleet SAM pattern (GitHub `deploy.yml` and/or `deploy:code`) | **full** | Confirm GitHub Actions Deploy after green main CI (`workflow_run`; babysit required); surface `deploy:infra` for human when infra paths changed; **if a Vercel/HTTP web tier exists**, also require `x-release-id` ≥ merge SHA |
+| **`heroku-git`** | `AGENTS.md` declares `heroku-git` / Heroku GitHub auto-deploy from `main` | full or light by diff size | After merge, verify Heroku release (`npx heroku releases`) **and** `x-release-id` ≥ merge SHA if the app serves HTTP |
+| **`gate-only`** | Pre-commit gate wired, no deploy entry (e.g. `dotagents`) | full or light by diff size | `deploy: none` / `deploy: no-http-release-id (n/a)` |
 | **`docs-config`** | Markdown/config-only diff, no runtime code | **skipped** (trivial fan-out) | Usually none |
 
 **Detection order:**
@@ -83,8 +83,8 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 
 **Capture post-push deploy/verify rules** into `{POST_PUSH_DEPLOYS}` for step 12:
 
-- **`vercel-static`:** production URL / custom domain, Vercel project name, optional smoke string (page title). No AWS Lambda live checks.
-- **`aws-sam`:** GitHub `deploy.yml` (my-org fleet) or break-glass `deploy:code` (STA), infra trigger paths, optional live Lambda check. Distinguish **code deploy** (Actions / break-glass `deploy:code`) from **infra deploy** (`npm run deploy:infra` — human MFA, never auto-run).
+- **`vercel-static`:** production URL / custom domain, Vercel project name, `x-release-id` probe (default `/`), optional smoke string (page title). No AWS Lambda live checks.
+- **`aws-sam`:** GitHub `deploy.yml` via `workflow_run` after green CI on `main` (my-org fleet + STA; babysit required), or break-glass `deploy:code` (STA only), infra trigger paths, optional live Lambda check; when a Vercel web URL is documented, include `x-release-id` verify. Distinguish **code deploy** (Actions / break-glass `deploy:code`) from **infra deploy** (`npm run deploy:infra` — human MFA, never auto-run).
 - If none documented, set `{POST_PUSH_DEPLOYS}` to `none` and follow profile defaults in `references/deploy-rules.md`.
 
 **Plan/spec lookup (D.1)**:
@@ -296,10 +296,10 @@ Step 12 is **profile-specific**. Read `references/deploy-rules.md` first. On eve
 Production deploys are usually triggered by **merge to `main`** — step 12 is **verification**, not invocation.
 
 1. Confirm integration landed on `main` (merged PR or direct push).
-2. Wait for / confirm production deployment reached **READY** (Vercel dashboard, Vercel MCP/API, or `vercel inspect` — do not run `vercel deploy --prod` unless the repo documents it as the deploy entry or Git integration is absent).
-3. HTTP **200** on production URL / custom domain (e.g. `curl -sf -o /dev/null -w '%{http_code}' https://example-learn.com`).
+2. Wait for / confirm production deployment reached **READY** for the merge SHA (Vercel dashboard, Vercel MCP/API, or `vercel inspect` — do not run `vercel deploy --prod` unless the repo documents it as the deploy entry or Git integration is absent). Supporting evidence only.
+3. **`x-release-id` must be ≥ the PR merge SHA** on the documented production URL (follow redirects; poll for CDN lag). Pass when prod is the merge commit **or a descendant** — not exact tip-of-`main` equality. **HTTP 200 alone is insufficient** — missing header, `dev`, or prod still behind the merge = fail. Helper: `skills/ship/scripts/verify-x-release-id.sh <url> <merged-sha>`. Contract: `references/release-id.md`.
 4. Optional smoke: page title or key UI string matches expected app.
-5. Record `deploy: auto (Vercel Git)` or `deploy: verified at <url>`.
+5. Record `deploy: verified x-release-id={sha} (≥ {merged}) at <url>`.
 6. Do **not** run AWS Lambda live checks for this profile.
 
 Manual `npx vercel --prod` is **fallback only** when `{POST_PUSH_DEPLOYS}` or AGENTS.md documents it as the deploy entry.
@@ -308,15 +308,20 @@ Manual `npx vercel --prod` is **fallback only** when `{POST_PUSH_DEPLOYS}` or AG
 
 my-org SAM fleet (shared-infra, todoist-backlog-scheduler, misc-notifications, personal-memory) and example-app deploy code via **GitHub Actions** (`.github/workflows/deploy.yml`) after merge — do **not** run local `deploy:code` on PR ships. Local `deploy:code` is **break-glass only** where AGENTS.md still documents it (example-app).
 
-1. Confirm the GitHub Deploy workflow (or break-glass local entry) after push/merge lands — babysit with `gh run watch`.
-2. Watch for success signal (workflow green, Lambda updated).
+**Trigger (all aws-sam):** Deploy runs only after **green CI on `main`** (`workflow_run` on successful CI whose triggering event was a `push` to `main`, plus `workflow_dispatch` break-glass). PR CI does **not** deploy. STA may also see CI via `workflow_dispatch` from `post-merge-bot` (GITHUB_TOKEN merges suppress `push`); Deploy still follows that green CI.
+
+**Required babysit — do not claim success on CI-green + merge alone:**
+
+1. After merge lands, wait for main CI (if still running), then **required** babysit **Deploy** (`gh run list --workflow=Deploy` / `gh run watch`) until green. Cap **3** fix-red-Deploy cycles (fix forward, re-push or re-dispatch); on the 4th, report **`Merged/Pushed — deploy/verify failed`**.
+2. Watch for success signal (Deploy workflow green, Lambda updated).
 3. **Infra deploy** (`npm run deploy:infra`) — **never auto-run**; surface for human when infra paths changed.
-4. Post-deploy live verification when diff affects external providers (Lambda invoke, etc.) — see `deploy-rules.md`.
-5. Record `deploy: Actions succeeded` / `deploy:code succeeded` (break-glass) / `deploy: failed (fixed and re-run)`.
+4. **HTTP / Vercel web tier (STA):** also require `x-release-id` ≥ merge SHA on the documented production URL — same rules as `vercel-static`. Actions green + HTTP 200 with a stale Vercel alias is a fail.
+5. Post-deploy live verification when diff affects external providers (Lambda invoke, etc.) — see `deploy-rules.md`.
+6. Record `deploy: Actions succeeded` + `deploy: verified x-release-id={sha} (≥ {merged}) at <url>` when HTTP applies; pure-infra SAM → `deploy: no-http-release-id (n/a)`.
 
 ### `gate-only` / `docs-config`
 
-Record `deploy: none`. Proceed to step 13.
+Record `deploy: none` / `deploy: no-http-release-id (n/a)`. Proceed to step 13.
 
 ### Record for step 14
 
@@ -349,7 +354,7 @@ After steps 10–13 complete, send **one closing message** to the user. This is 
 | PR merged + deploy OK | **`PR merged to main`** — PR URL, SHA, `Ship profile`, `Review tier`, deploy outcome, `CI: GitHub Actions` |
 | PR open, auto-merge queued | **`PR open — auto-merge pending CI`** — PR URL, check status |
 | PR CI failed | **`Not merged`** / **`Not ready`** — which check failed |
-| Full success (direct-push, Vercel verified) | **`Shipped to main`** — SHA, `Ship profile: vercel-static`, `Review tier: light`, `deploy: verified at https://…`, `CI: none (local gate)` |
+| Full success (direct-push, Vercel verified) | **`Shipped to main`** — SHA, `Ship profile: vercel-static`, `Review tier: light`, `deploy: verified x-release-id={sha} (≥ {merged}) at https://…`, `CI: none (local gate)` |
 | Full success (direct-push, AWS deploy) | **`Shipped to main`** — SHA, `Ship profile: aws-sam`, `Review tier: full`, `deploy:code succeeded`, `CI: none (local gate)` |
 | Direct-push OK, gate-only | **`Shipped to main`** — `deploy: none`, `CI: none (local gate)` |
 | Push OK, deploy/verify failed | **`Merged/Pushed — deploy/verify failed`** — runtime stale; what failed |

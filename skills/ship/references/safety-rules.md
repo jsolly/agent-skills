@@ -30,7 +30,7 @@ Mechanical blocks — not advisory.
 | --- | --- | --- |
 | **Home (laptop)** | `block-prod-db-migrations`, `block-stack-delete`, `block-pr-create-outside-ship`, plus path/write guards `block-edit-on-main` and `block-claude-md-write`, wired into each tool's app-owned config by an agent following `host machine setup docs` | Local Cursor, Claude Code, and Codex sessions on any wired machine |
 
-The three shell guards are `block-prod-db-migrations`, `block-stack-delete`, and `block-pr-create-outside-ship`, plus the path/write guards. On a laptop host, run the doctor script to verify live wiring. Cloud VMs skip laptop doctor/guards.
+The three shell guards are `block-prod-db-migrations`, `block-stack-delete`, and `block-pr-create-outside-ship`, plus the path/write guards. Run the repo-root `doctor-agents.sh` (under the top-level `scripts` dir) to verify live wiring.
 
 Install or refresh symlinked skills/agents/rules:
 

@@ -43,11 +43,10 @@ Branch on `{SHIP_PROFILE}` and whether the PR has merged:
 
 ### After merge (`main` updated`)
 
-- **`vercel-static`:** wait for Vercel production deployment READY; HTTP 200 on production URL. Record `deploy: verified at <url>`.
-- **`aws-sam` (my-org fleet):** babysit `.github/workflows/deploy.yml` — code deploys via GitHub Actions after merge. Do **not** run local `deploy:code`.
-- **`aws-sam` (example-app):** GitHub-managed deploy on merge; local `npm run deploy:code` is **break-glass only** when AGENTS.md says so. Babysit `deploy.yml` with `gh run watch`.
-- **`heroku-git`:** Heroku GitHub auto-deploy from `main` — verify with `npx heroku releases` (and/or `npx heroku ps`) once the release appears. Record `deploy: heroku release <vN>`.
-- **`gate-only` / `docs-config`:** `deploy: none`.
+- **`vercel-static`:** wait for Vercel production deployment READY for the merge SHA; then **require** `x-release-id` on the production URL ≥ that merge SHA (ancestor check — later tip deploys that include the merge still pass). HTTP 200 alone is insufficient. Record `deploy: verified x-release-id={sha} (≥ {merged}) at <url>`. See `references/release-id.md`.
+- **`aws-sam` (all — my-org fleet + STA):** **required** babysit `.github/workflows/deploy.yml` after green main CI (Deploy is `workflow_run`-gated, not PR CI). Cap 3 fix-red-Deploy cycles; still red → **`Merged/Pushed — deploy/verify failed`**. Do **not** claim success on merge alone. Do **not** run local `deploy:code` (STA break-glass only when AGENTS.md says so). Fleet with no HTTP app: record `deploy: no-http-release-id (n/a)`. **STA:** also require `x-release-id` ≥ merge SHA on the Vercel production URL.
+- **`heroku-git`:** Heroku GitHub auto-deploy from `main` — verify with `npx heroku releases` (and/or `npx heroku ps`) once the release appears; if the app serves HTTP, also require `x-release-id` ≥ merge SHA. Record `deploy: heroku release <vN>` (+ release-id line when applicable).
+- **`gate-only` / `docs-config`:** `deploy: none` / `deploy: no-http-release-id (n/a)`.
 
 ## 13. Confirm integration landed
 
@@ -68,6 +67,7 @@ Lead with outcome:
 | Outcome | Opening line |
 | --- | --- |
 | Merged + deploy OK | **`PR merged to main`** — PR URL, merge SHA, `Ship profile`, `Review tier`, `CI owner`, deploy outcome, `CI: GitHub Actions` |
+| Merged but Deploy/verify red | **`Merged/Pushed — deploy/verify failed`** — which Deploy/verify check failed |
 | PR open, auto-merge queued | **`PR open — auto-merge pending CI`** — PR URL, check status |
 | CI failed | **`Not merged`** — which check failed |
 | Stopped on findings | **`Stopped — not pushed`** |
