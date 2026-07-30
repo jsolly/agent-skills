@@ -1,6 +1,8 @@
 # Per-Project Deploy Entries — run explicitly by the skill in Step 12
 
-Step 12 behavior depends on **`{SHIP_PROFILE}`**, **`{INTEGRATION_MODEL}`**, and **`{CI_OWNER}`** (see `orchestration.md` step 3, `ci-owner.md`). On every PR ship: watch CI → fix red → merge. After merge: **Vercel-Git static sites verify production URL; my-org AWS SAM repos babysit GitHub Actions `deploy.yml`; Heroku GitHub auto-deploy repos verify with `npx heroku releases`; example-app may still use break-glass local `deploy:code`.**
+Step 12 behavior depends on **`{SHIP_PROFILE}`**, **`{INTEGRATION_MODEL}`**, and **`{CI_OWNER}`** (see `orchestration.md` step 3, `ci-owner.md`). On every PR ship: watch CI → fix red → merge. After merge: **Vercel-Git static sites and hybrid Vercel web tiers must prove the merged commit is live via `x-release-id` (see `references/release-id.md`); my-org AWS SAM repos babysit GitHub Actions `deploy.yml`; Heroku GitHub auto-deploy repos verify with `npx heroku releases`; example-app may still use break-glass local `deploy:code`.**
+
+**HTTP 200 alone is insufficient.** Vercel READY / Actions green are supporting evidence; the user-facing source of truth is `x-release-id` **≥ the PR merge SHA** (ancestor check — a later tip that includes the merge still passes). Repos with no HTTP app record `deploy: no-http-release-id (n/a)`.
 
 ---
 
@@ -17,15 +19,23 @@ When production deploys are triggered by **merge to `main`**, step 12 is **verif
 ### Verification checklist (step 12)
 
 1. **Integration landed** on `main` (PR merged or direct push succeeded).
-2. **Production deployment READY** — poll via Vercel dashboard, Vercel MCP/API, or `vercel inspect <deployment-url>` until status is ready (typically 1–3 minutes after push).
-3. **HTTP 200** on production URL / custom domain:
+2. **Production deployment READY** — poll via Vercel dashboard, Vercel MCP/API, or `vercel inspect <deployment-url>` until status is ready for the **merge SHA** (and confirm Git link org/repo when debugging disconnects). Typically 1–3 minutes after push. Supporting evidence only — not sufficient alone.
+3. **`x-release-id` ≥ the PR merge SHA** on the documented production URL (follow redirects). **Required.** Pass when prod resolves to the merge commit **or any descendant** (`git merge-base --is-ancestor`). Exact tip-of-`main` equality is not required (concurrent merges would false-fail). HTTP 200 without this check is a **fail** (stale alias / wrong Git link / never rebuilt).
 
    ```bash
-   curl -sf -o /dev/null -w '%{http_code}\n' https://example-learn.com
+   # Prefer the skill helper (polls ~8 min for CDN lag). Pass the merge SHA:
+   MERGED_SHA=$(gh pr view <n> --json mergeCommit --jq .mergeCommit.oid)
+   bash "$(git -C $AGENT_CONFIG_ROOT rev-parse --show-toplevel)/skills/ship/scripts/verify-x-release-id.sh" \
+     https://example-learn.com "$MERGED_SHA"
+
+   # Or manually (supporting evidence only — prefer the helper's ancestor check):
+   curl -sSIL https://example-learn.com | rg -i '^x-release-id:'
+   # Pass only if header value is MERGED_SHA or a descendant; fail if missing, "dev", or behind.
    ```
 
+   Full contract + recipe: `references/release-id.md`.
 4. **Optional smoke:** fetch page and confirm title or key UI string (e.g. app name in `<title>`).
-5. Record **`deploy: auto (Vercel Git)`** or **`deploy: verified at <url>`** in step 14.
+5. Record **`deploy: verified x-release-id={sha} (≥ {merged}) at <url>`** in step 14.
 
 ### Fallback — manual CLI deploy
 
@@ -43,11 +53,13 @@ Run `vercel deploy --prod` (or repo-documented command) **only when**:
 
 ## AWS SAM and other code deploys (`aws-sam` profile)
 
-For the **my-org SAM fleet**, code deploy is GitHub Actions after merge — do **not** run local `deploy:code`. example-app may still document break-glass `npm run deploy:code`. The **infra deploy** (`npm run deploy:infra` / full SAM) is **admin-MFA human step-up** — never auto-run.
+For the **my-org SAM fleet** and **example-app**, code deploy is GitHub Actions after merge — do **not** run local `deploy:code` on PR ships. example-app may still document break-glass `npm run deploy:code`. The **infra deploy** (`npm run deploy:infra` / full SAM) is **admin-MFA human step-up** — never auto-run.
+
+**Shared trigger (all aws-sam):** `.github/workflows/deploy.yml` runs via `workflow_run` after **successful CI on `main`** (triggering event `push`; STA also accepts bot-dispatched `workflow_dispatch` CI), plus human `workflow_dispatch` break-glass. PR CI does not deploy. Payload stays repo-specific (fleet: `update-function-code` + drift tags; STA: migrations + live-provider + Vercel web).
 
 **Naming convention:** `deploy:code` = post-land Lambda code deploy (break-glass / STA; my-org fleet uses Actions instead). `deploy:infra` = full SAM/CloudFormation (human MFA). Vercel Git sites have no local deploy entry.
 
-Because deploy runs after push, push and deploy are **not atomic**: a deploy failure leaves `main` updated but runtime stale — fix forward and re-run the entry (idempotent).
+Because Deploy runs after merge (and after main CI), merge and Deploy are **not atomic**: a Deploy failure leaves `main` updated but runtime stale — fix forward and re-run. **`/ship` must babysit Deploy to green** (cap 3 fix-red cycles); CI-green + merge alone is not shipped. Fail loud as **`Merged/Pushed — deploy/verify failed`**.
 
 The actual triggers/commands per repo live in each project's `AGENTS.md` and its deploy entry.
 
@@ -57,20 +69,22 @@ The actual triggers/commands per repo live in each project's `AGENTS.md` and its
 
 In step 3, capture deploy/verify rules into `{POST_PUSH_DEPLOYS}`. Examples:
 
-- **`vercel-static`:** "Verify `https://example-learn.com` returns 200 after Vercel Git deploy; no manual vercel CLI."
-- **`aws-sam`:** "Code deploy via GitHub Actions `deploy.yml` (my-org fleet) or break-glass `deploy:code` (STA); full `npm run deploy:infra` when `aws/template.yaml` changes — human-only."
-- **`gate-only`:** "No deploy entry — `deploy: none`."
+- **`vercel-static`:** "After Vercel READY, verify `x-release-id` on production URL ≥ merge SHA; no manual vercel CLI."
+- **`aws-sam` + Vercel web (STA):** "Required babysit `deploy.yml` after green main CI; verify `x-release-id` on the Vercel production URL ≥ merge SHA."
+- **`aws-sam` (no HTTP app):** "Required babysit GitHub Actions `deploy.yml` after green main CI; `deploy: no-http-release-id (n/a)`."
+- **`gate-only`:** "No deploy entry — `deploy: no-http-release-id (n/a)` / `deploy: none`."
 
 Also read `docs/deploy-gotchas.md` (or equivalent) for preconditions.
 
 ## How to run (step 12) — AWS repos
 
 1. Confirm step-11 push/merge succeeded.
-2. **my-org SAM fleet + STA:** babysit GitHub Actions `deploy.yml` after merge. **example-app break-glass:** resolve `npm run deploy:code` / `scripts/deploy.sh` only when AGENTS.md says so. Gate-only → `deploy: none`.
-3. Watch for success signal (workflow green, Lambda updated, etc.).
-4. Smoke-check when repo documents one.
-5. Post-deploy live verification when diff affects external providers (see below) — **aws-sam only**, not `vercel-static`.
-6. On failure: fix forward, re-run gate/push if code changed, re-dispatch or re-run the deploy entry.
+2. **my-org SAM fleet + STA (required):** after merge, wait for main CI if needed, then babysit GitHub Actions **Deploy** until green (`gh run watch`). Cap 3 fix-red-Deploy cycles; then **`Merged/Pushed — deploy/verify failed`**. Do not treat PR CI green + merge as success. **example-app break-glass:** resolve `npm run deploy:code` / the repo's `aws/deploy.sh` only when AGENTS.md says so. Gate-only → `deploy: none`.
+3. Watch for success signal (Deploy workflow green, Lambda updated, etc.).
+4. **HTTP apps (STA Vercel web, etc.):** require `x-release-id` ≥ merge SHA on the documented production URL — see `references/release-id.md`. Actions green + HTTP 200 without the ancestor check is a fail.
+5. Smoke-check when repo documents one.
+6. Post-deploy live verification when diff affects external providers (see below) — **aws-sam only**, not `vercel-static`.
+7. On Deploy failure: fix forward, re-run gate/push if code changed, re-dispatch or re-run Deploy; if still red after 3 cycles, fail the ship.
 
 ---
 
@@ -96,7 +110,7 @@ Most common fleet pattern for personal projects with an `aws/` directory.
 
 ### When it runs
 
-**my-org SAM fleet** (shared-infra, todoist-backlog-scheduler, misc-notifications, personal-memory): code deploy is GitHub Actions `.github/workflows/deploy.yml` after merge to `main` — do **not** run local `deploy:code`. **example-app** also deploys via Actions; local `npm run deploy:code` is break-glass only. The **infra** deploy (`npm run deploy:infra`, full SAM) is human-only and is *surfaced, not run*, when an infra-trigger path changed. The trigger paths below tell you which deploy a change warrants:
+**my-org SAM fleet** (shared-infra, todoist-backlog-scheduler, misc-notifications, personal-memory) **and example-app:** code deploy is GitHub Actions `.github/workflows/deploy.yml` via `workflow_run` after green CI on `main` — do **not** run local `deploy:code` on PR ships. STA local `npm run deploy:code` is break-glass only. The **infra** deploy (`npm run deploy:infra`, full SAM) is human-only and is *surfaced, not run*, when an infra-trigger path changed. The trigger paths below tell you which deploy a change warrants:
 
 | Path prefix | Why | Which deploy |
 | --- | --- | --- |
@@ -115,7 +129,7 @@ Most common fleet pattern for personal projects with an `aws/` directory.
 
 ### Command (what runs)
 
-**Default (my-org fleet + STA):** GitHub Actions `deploy.yml` after merge — babysit with `gh run watch`.
+**Default (my-org fleet + STA):** GitHub Actions `deploy.yml` after green main CI — **required** babysit with `gh run watch` (cap 3; then `Merged/Pushed — deploy/verify failed`).
 
 **Break-glass (example-app when AGENTS.md says so):**
 
@@ -142,6 +156,7 @@ npm run deploy:infra           # = bash aws/deploy.sh (or npm --prefix aws run d
 From root `AGENTS.md`:
 
 - **Code deploy (GitHub-managed):** GitHub Actions runs `aws/deploy-web.sh --deploy-ci` after `main` CI passes — Supabase migrations + Lambda `update-function-code`. Local `npm run deploy:code` is break-glass only. Vercel web tier deploys via Vercel GitHub integration.
+- **Web verify (required):** after merge, poll `https://example-app.com` until `x-release-id` is ≥ the PR merge SHA. Do not treat Actions green + HTTP 200 as sufficient — stale Vercel aliases fail this check. See `references/release-id.md`.
 - **Infra deploy (human MFA, surfaced not run):** `npm run deploy:infra` (alias for `npm --prefix aws run deploy`) — full SAM, required when `aws/template.yaml`/`aws/deploy.sh` changes.
 - **Gotcha:** merge env-var template changes to `main` before the infra deploy — see `docs/deploy-gotchas.md`
 
@@ -175,8 +190,9 @@ From root `AGENTS.md`:
 
 With pre-commit hooks gate-only and profile-specific step 12:
 
-- **Vercel Git (`vercel-static`):** verify production URL returns 200 after deploy — do not skip because "push landed". Record `deploy: verified at <url>`.
-- **AWS repos:** if a trigger path changed, confirm Actions deploy (my-org fleet) or run break-glass `deploy:code` when AGENTS.md says so. "Push landed" is not "shipped" until deploy succeeds.
+- **Vercel Git (`vercel-static`):** verify `x-release-id` ≥ merged SHA after deploy — do not treat HTTP 200 or "push landed" as shipped. Record `deploy: verified x-release-id={sha} (≥ {merged}) at <url>`.
+- **AWS + Vercel web (STA):** babysit Actions **and** require the Vercel-tier `x-release-id` ≥ merge SHA — Actions green + HTTP 200 with a stale Vercel alias is still a fail.
+- **AWS repos (no HTTP):** if a trigger path changed, confirm Actions deploy (my-org fleet) or run break-glass `deploy:code` when AGENTS.md says so. "Push landed" is not "shipped" until deploy succeeds.
 - **Deploying before the push lands.** Run the entry only after `git push origin HEAD:main` succeeds, so the runtime never gets ahead of the remote.
 - **Treating a deploy failure as a push failure.** The code *is* on `main`; the runtime is stale. Fix forward and re-run the deploy entry (idempotent) — and if it stays red, say so loudly in the final summary.
 - **No deploy path wired (AWS repos).** If a repo deploys Lambda code but has neither GitHub Actions `deploy.yml` nor a documented break-glass `deploy:code`, flag it as a wiring gap — the fix is to add the deploy path to the repo, not to improvise commands here. Vercel Git-integrated repos intentionally have no local entry.

@@ -33,9 +33,9 @@ The orchestration is documented in `references/orchestration.md` — read it bef
 9. **Fix issues + re-smoke** — fix verified Critical and reasonable Important findings; re-run smoke and scoped re-review; loop up to 3 cycles. → see `references/orchestration.md`
 10. **Stage and commit** — stage by name (no `git add -A`); Conventional Commits message describing original intent. → see `references/orchestration.md`
 11. **Run the gate, then integrate** — run the repo gate explicitly; then **`pr-auto-merge`:** push branch + open PR (→ `references/pr-integration.md`); **`direct-push`:** `git push origin HEAD:main`. Never `--no-verify`. → see `references/orchestration.md`
-12. **Babysit PR CI, then deploy/verify** — watch CI, fix red checks (cap 3), merge when green, then post-merge Vercel/Actions/Heroku verify. Never auto-run `deploy:infra`. → see `references/deploy-rules.md`, `references/pr-integration.md`, `references/ci-owner.md`
+12. **Babysit PR CI, then deploy/verify** — watch CI, fix red checks (cap 3), merge when green, then post-merge Vercel/Actions/Heroku verify. For **`aws-sam`**, **required** babysit **Deploy** after green main CI (cap 3); fail as `Merged/Pushed — deploy/verify failed` if Deploy stays red — do not treat merge alone as shipped. For HTTP apps, **require** `x-release-id` ≥ the PR merge SHA (ancestor check — not HTTP 200 alone; later tip deploys that include the merge still pass). Never auto-run `deploy:infra`. → see `references/deploy-rules.md`, `references/release-id.md`, `references/pr-integration.md`, `references/ci-owner.md`
 13. **Confirm integration landed** — PR path: merged SHA + CI status; direct-push: push is the CI. → see `references/orchestration.md` step 13
-14. **Final user summary** — lead with **`PR merged to main`**, **`PR open — auto-merge pending CI`**, or **`Shipped to main`** (direct-push). → see `references/orchestration.md` step 14
+14. **Final user summary** — lead with **`PR merged to main`**, **`PR open — auto-merge pending CI`**, **`Merged/Pushed — deploy/verify failed`**, **`Not merged`**, or **`Shipped to main`** (direct-push). → see `references/orchestration.md` step 14
 15. **Clean up worktree** — ran from a linked worktree? Remove it + `cd` back to the primary checkout's `main` (default). **`pr-auto-merge`:** after merge lands. **`direct-push`:** after the push lands. Only the worktree *this* ship ran from; never sweep others'. → see `references/orchestration.md` step 15
 
 ## Safety rules (non-negotiable)
@@ -57,6 +57,8 @@ The push-fix loop (step 11, local gate before push) is capped at 3 cycles. On th
 
 The **fix-red-PR loop** (step 12, after the PR is open) is capped at 3 cycles: watch → fail → fix → push → re-watch. On the 4th failure, report **`Not merged`** — do not abandon the PR silently.
 
+The **fix-red-Deploy loop** (step 12, after merge, `aws-sam`) is capped at 3 cycles: watch Deploy → fail → fix forward → re-watch. On the 4th failure, report **`Merged/Pushed — deploy/verify failed`** — do not lead with **`PR merged to main`** / **`Shipped to main`**.
+
 ## Token economics
 
 This skill is the only semantic review gate — match depth to profile, not one size for every repo.
@@ -76,5 +78,7 @@ This skill is the only semantic review gate — match depth to profile, not one 
 - `references/output-contract.md` — canonical reviewer output schema (every agent inlines this).
 - `references/dispatch-prompt.md` — the prompt template each agent receives via Task.
 - `references/deploy-rules.md` — AWS GitHub-managed deploy, Vercel Git verification, live checks.
+- `references/release-id.md` — fleet `x-release-id` contract, stamp recipe, step-12 verify procedure, rollout checklist.
+- `scripts/verify-x-release-id.sh` — poll production until `x-release-id` is ≥ the given minimum SHA (PR merge commit).
 - `references/conflict-resolution.md` — merge conflict resolution + gate reproduction guidance.
 - `references/safety-rules.md` — git safety model + remaining shell guards (prod DB, stack delete, CLAUDE.md write).
