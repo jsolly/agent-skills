@@ -53,6 +53,7 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `janitor` | Drain issues/PRs across repos |
 | `explain-diff-html` | Interactive HTML diff explanation |
 | `optimize-workspace` | Monthly workspace audit — drain memories into durable config |
+| `start-feature` | Ready room: worktree + local dev server + embedded browser |
 
 ## Review agents (`/ship` fleet)
 
