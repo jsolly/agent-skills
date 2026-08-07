@@ -59,11 +59,11 @@ Group findings by severity. Use these labels exactly:
 
 ### Important (should fix before push)
 
-[Real issues that hurt correctness, maintainability, or operability — not push-blockers but not deferrable]
+[Real issues that hurt correctness, maintainability, or operability — fixed in the same /ship run]
 
 ### Minor (nice to have)
 
-[Style-adjacent improvements, alternative approaches, follow-up suggestions]
+[Bounded cleanups and small quality improvements the orchestrator will eagerly fix before shipping]
 
 For each finding:
 

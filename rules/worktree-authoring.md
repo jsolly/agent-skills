@@ -56,15 +56,18 @@ dotagents prescribes *that* you author in a worktree, not the low-level plumbing
   `git push origin HEAD:main` from a worktree to integrate (break-glass only on branch-protected
   repos).
 - **Clean up** only the worktree *this* task created, and only once its work is pushed and the tree
-  is clean — never remove a worktree holding another task's dirty state. `/ship` handles this at the
-  end of a task.
+  is clean — never remove a worktree holding another task's dirty state. Use
+  `git worktree remove <path>` (never `rm -rf`): it deletes both the working tree and git's admin
+  metadata under `.git/worktrees/`, and refuses on a dirty tree. Use `--force` only for an intentional
+  dirty delete. `/ship` handles this at the end of a task.
 
 ## For skills
 
 A skill whose changes **integrate via `/ship`** (branch → PR → merge) states, near its top: *author
 in a worktree off `main` (see `rules/worktree-authoring.md`)*. It does not re-explain the mechanism —
-this rule is the single source. Carriers today: `refactor`, `seo`, `shared-infra-integration`,
-`optimize-workspace`, and `ship` (the integrator itself).
+this rule is the single source. Carriers today: `refactor`, `seo`, `optimize-workspace`, and `ship`
+(the integrator itself). Other private fleet skills that integrate via `/ship` may also carry the
+pointer.
 
 Two classes edit repo files but do **not** carry the pointer, because they isolate through their own
 mechanism and don't integrate via `/ship`:
@@ -76,8 +79,8 @@ mechanism and don't integrate via `/ship`:
   resulting PR); it references this rule inline where it authors, rather than carrying a single
   top-of-file pointer, because only that one arm authors. Don't "fix" it into a plain carrier or a
   plain existing-branch operator — it is both.
-- **MCP / data-dump tasks** — the `ingest-private-data` skill writes to the personal-memory MCP store
-  and delete gitignored input files; there's no `/ship`-integrated source change.
+- **MCP / data-dump tasks** — skills that write only to an MCP store or gitignored inputs; there's
+  no `/ship`-integrated source change.
 
 Pure-conversation skills (brainstorming, grilling, research, handoff summaries) make no edits and
 carry no such line.

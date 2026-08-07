@@ -27,15 +27,15 @@ Do **not** vendor the private dotagents tree into this repo.
 
 - `scripts/install-local-agent-runtime.sh` and `scripts/doctor-agents.sh`
 - User-level `~/.cursor/hooks.json` and other home hooks/guards
-- Private skills (e.g. `verify-ui`, `publish-skills`, family-memory)
+- Private skills (e.g. `publish-skills`, family-memory)
 
 ## Skills / slash commands
 
 If slash-skill autocomplete is empty on a **follow-up** turn, invoke the skill by name in prose
 (known Agents Window bug; typed invoke still works).
 
-Private laptop-only skills are **not** available here. For UI smoke, follow this repo's
-`AGENTS.md` **Local UI verification** stanza — do not invent `/verify-ui` when that skill is absent.
+`/verify-ui` ships in this package — use it for UI smoke when the skill is present. If it is
+missing, follow this repo's `AGENTS.md` **Local UI verification** stanza instead.
 
 ## Hooks / guards
 

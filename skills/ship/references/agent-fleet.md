@@ -10,8 +10,8 @@ The fleet was deliberately pruned from 17 to 12 (2026-06-10): overlapping lenses
 
 | Tier | When | Agent calls (typical) |
 | --- | --- | --- |
-| **skipped** | Trivial `docs-config` diff — typo, comment-only, single-value config with no logic | 0 |
-| **light** | Default for `vercel-static` and frontend-only repos when diff is non-trivial but not infra-heavy | 5–7 fan-out + confidence-scorer |
+| **skipped** | **Only** when every path in `CHANGED_FILES` matches the docs-config allowlist in `orchestration.md` step 6 — no "looks trivial" judgment | 0 |
+| **light** | Default for `vercel-static` and frontend-only repos when the diff is not allowlist-only and not infra-heavy | **exact 5 always-run** + 0–2 extension-gated + confidence-scorer |
 | **full** | Default for `aws-sam`; mandatory when diff touches `aws/`, migrations, IAM, secrets handling, auth/providers, or cross-cutting lib refactors | 10–12 fan-out + confidence-scorer |
 
 **Escalation:** if light review surfaces Critical/Important structural, security, or infra findings, re-run with **full** fleet before push.
@@ -20,9 +20,17 @@ The fleet was deliberately pruned from 17 to 12 (2026-06-10): overlapping lenses
 
 ## Light fleet
 
-Default for **`vercel-static`** profile and other frontend-only repos when the diff is non-trivial but not infra-heavy.
+Default for **`vercel-static`** profile and other frontend-only repos when the diff is not docs-config-allowlist-only and not infra-heavy.
 
-### Always-run (5 agent types, 5 calls)
+### Always-run (5 agent types, 5 calls) — non-negotiable
+
+Spawn **all five** in one message when tier is **light**. Do not drop, defer, or cherry-pick by topic. Checklist (same as `orchestration.md` step 6):
+
+- [ ] `guidelines-auditor`
+- [ ] `bug-scanner`
+- [ ] `security-scanner`
+- [ ] `secrets-scanner`
+- [ ] `code-quality-reviewer`
 
 | Agent | Lens |
 | --- | --- |
@@ -108,4 +116,5 @@ Agents set no `model` in frontmatter. Claude Code defaults to `inherit`. Pick th
 
 - **Light fleet** is the default for `vercel-static` and frontend-only repos — still read full changed-file bodies for `code-quality-reviewer`.
 - **Full fleet** is mandatory for `aws-sam`, infra/DB/auth/provider diffs, and escalations from light review.
-- Skip fan-out only for trivial `docs-config` diffs (typo, comment-only, one-value config tweak).
+- Skip fan-out **only** when every changed path matches the docs-config allowlist (`orchestration.md` step 6). Any code/logic file → fan-out mandatory; never skip because a change "looks trivial."
+- Light always-run set is literal: all 5 agents every time — never degrade to a cherry-picked subset.

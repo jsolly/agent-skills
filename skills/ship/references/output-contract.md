@@ -31,11 +31,11 @@ Bugs, security holes, data-loss risks, breaking changes, guideline violations wi
 
 ### Important (should fix before push)
 
-Real issues that hurt correctness, maintainability, or operability — not push-blockers but not deferrable either. The user will read these and decide.
+Real issues that hurt correctness, maintainability, or operability — not push-blockers, but `/ship` still grinds them in the same run (no user followup).
 
 ### Minor (nice to have)
 
-Style-adjacent improvements, alternative approaches, follow-up suggestions. The orchestrator drops Minor findings before invoking `confidence-scorer`, so use this bucket sparingly — if it's not worth a confidence score, it's probably not worth reporting.
+Bounded cleanups, alternative approaches, and small quality improvements that are still concrete (file:line + fix). The orchestrator skips `confidence-scorer` for this bucket but still presents and **eagerly fixes** verified Minors before shipping — so keep the bar above pure taste: if you would not want the orchestrator to apply it in this run, do not report it.
 
 ## Cap
 
@@ -126,11 +126,11 @@ Group findings by severity. Use these labels exactly:
 
 ### Important (should fix before push)
 
-[Real issues that hurt correctness, maintainability, or operability — not push-blockers but not deferrable]
+[Real issues that hurt correctness, maintainability, or operability — fixed in the same /ship run]
 
 ### Minor (nice to have)
 
-[Style-adjacent improvements, alternative approaches, follow-up suggestions]
+[Bounded cleanups and small quality improvements the orchestrator will eagerly fix before shipping]
 
 For each finding:
 - **File:line** — location
