@@ -7,7 +7,9 @@ description: Use when the user asks to push changes, says `/ship`, asks to open/
 
 This is the sole semantic review gate before code reaches the remote. **Default integration:** branch → PR → CI-gated auto-merge (`{INTEGRATION_MODEL}` = `pr-auto-merge`). **Legacy/break-glass:** direct `git push origin HEAD:main` when AGENTS.md declares `Integration: direct-push` or for emergency admin bypass.
 
-Review depth and deploy behavior are **right-sized by ship profile** (step 3): static Vercel SPAs get a light agent fleet; AWS SAM repos lean on GitHub deploy workflows (`.github/workflows/deploy.yml`) instead of local `deploy:code`. **CI owner** (`local` vs `github-handoff`) controls only how much of the battery runs locally before the PR — see `references/ci-owner.md`. **There is no fire-and-forget canon.** Success means the gate passes locally, the branch lands on the remote, CI is babysat to green (fix forward on red), and the PR merges. Where auto-merge can't arm (plan-gated private Free repos), merge manually once green. **The skill runs the gate explicitly** before push; the pre-commit hook already ran at commit time, but `/ship` must not rely on that alone.
+**Completion contract — grind until shipped, no followups.** `/ship` owns the whole path to a finished outcome. Do not stop at "PR created," "ready to push," "LGTM with nits," or a punch-list for the user. Fix verified review findings (including optional refactors), re-smoke, push, babysit CI, merge, and verify deploy — in one run — until the lead line is a terminal shipped/failed state. A successful close has **zero user followups**: no deferred review TODOs, no "you might also want…," no open questions. If something is truly unbounded or needs an explicit human decision, **stop and ask** (or hard-fail at a cycle cap) — do not ship with leftovers.
+
+Review depth and deploy behavior are **right-sized by ship profile** (step 3): static Vercel SPAs get a light agent fleet; AWS SAM repos lean on GitHub deploy workflows (`.github/workflows/deploy.yml`) instead of local `deploy:code`. **CI owner** (`local` vs `github-handoff`) controls only how much of the battery runs locally before the PR — see `references/ci-owner.md`. **There is no fire-and-forget canon.** Success means the gate passes locally, the branch lands on the remote, CI is babysat to green (fix forward on red), the PR merges, and post-merge verify is done — with no remaining agent-owned work. Where auto-merge can't arm (plan-gated private Free repos), merge manually once green. **The skill runs the gate explicitly** before push; the pre-commit hook already ran at commit time, but `/ship` must not rely on that alone.
 
 ## PR CI babysit (required on every PR ship)
 
@@ -27,12 +29,12 @@ The orchestration is documented in `references/orchestration.md` — read it bef
 3. **Load guidelines + classify profile, integration, and CI owner** — read AGENTS.md; infer `{SHIP_PROFILE}`, `{INTEGRATION_MODEL}`, and `{CI_OWNER}`; locate plan/spec (D.1). → see `references/orchestration.md` and `references/ci-owner.md`
 4. **Smoke check** — tests, type checker, reproduce the gate locally if the change could affect it. → see `references/orchestration.md` and `references/conflict-resolution.md`
 5. **Architectural sanity check** — orchestrator notes structural concerns; these get injected into agent prompts via D.2. → see `references/orchestration.md`
-6. **Review with parallel agents** — read full changed-file bodies; fan out **light** or **full** fleet per profile and diff (see `references/agent-fleet.md`). Skip fan-out only for trivial `docs-config` diffs.
-7. **Adjudicate findings with `confidence-scorer`** — drop Minor, score Critical/Important, verify surviving findings against real code paths. → see `references/orchestration.md`
+6. **Review with parallel agents** — read full changed-file bodies; fan out **light** or **full** fleet per profile and diff (see `references/agent-fleet.md`). Skip fan-out **only** when every changed path matches the docs-config allowlist; light tier always spawns the exact 5 always-run agents (checklist in `references/orchestration.md` step 6).
+7. **Adjudicate findings with `confidence-scorer`** — score Critical/Important (Minors skip the scorer but stay in the report); verify surviving findings against real code paths. → see `references/orchestration.md`
 8. **Present verdict + findings** — verdict-line first, TL;DR paragraph, then per-severity findings. Include `Ship profile`, `Review tier`, `Integration model`, and `CI owner`. → see `references/orchestration.md`
-9. **Fix issues + re-smoke** — fix verified Critical and reasonable Important findings; re-run smoke and scoped re-review; loop up to 3 cycles. → see `references/orchestration.md`
+9. **Fix issues + re-smoke** — eagerly fix all verified findings (Critical, Important, and valid Minor/refactor); re-run smoke and scoped re-review; loop up to 3 cycles. → see `references/orchestration.md`
 10. **Stage and commit** — stage by name (no `git add -A`); Conventional Commits message describing original intent. → see `references/orchestration.md`
-11. **Run the gate, then integrate** — run the repo gate explicitly; then **`pr-auto-merge`:** push branch + open PR (→ `references/pr-integration.md`); **`direct-push`:** `git push origin HEAD:main`. Never `--no-verify`. → see `references/orchestration.md`
+11. **Run the gate, then integrate** — run the repo gate explicitly; then **`pr-auto-merge`:** push branch + open PR (→ `references/pr-integration.md`); **`direct-push`:** `git push origin HEAD:main # DOTAGENTS_SHIP=1`. Never `--no-verify`. Mark every push with trailing `# DOTAGENTS_SHIP=1`. → see `references/orchestration.md`
 12. **Babysit PR CI, then deploy/verify** — watch CI, fix red checks (cap 3), merge when green, then post-merge Vercel/Actions/Heroku verify. For **`aws-sam`**, **required** babysit **Deploy** after green main CI (cap 3); fail as `Merged/Pushed — deploy/verify failed` if Deploy stays red — do not treat merge alone as shipped. For HTTP apps, **require** `x-release-id` ≥ the PR merge SHA (ancestor check — not HTTP 200 alone; later tip deploys that include the merge still pass). Never auto-run `deploy:infra`. → see `references/deploy-rules.md`, `references/release-id.md`, `references/pr-integration.md`, `references/ci-owner.md`
 13. **Confirm integration landed** — PR path: merged SHA + CI status; direct-push: push is the CI. → see `references/orchestration.md` step 13
 14. **Final user summary** — lead with **`PR merged to main`**, **`PR open — auto-merge pending CI`**, **`Merged/Pushed — deploy/verify failed`**, **`Not merged`**, or **`Shipped to main`** (direct-push). → see `references/orchestration.md` step 14
@@ -43,11 +45,13 @@ The orchestration is documented in `references/orchestration.md` — read it bef
 - **Never push directly to `main` except break-glass** — default path pushes a feature branch and opens a PR. Direct `HEAD:main` only when `{INTEGRATION_MODEL}` is `direct-push` or user explicitly requests emergency bypass.
 - **Never push a branch without running the local gate first** — the pre-commit hook already ran at commit, but `/ship` re-runs the gate explicitly before push.
 - **Never bare `gh pr create`** — always prefix with `DOTAGENTS_SHIP=1` (see `references/pr-integration.md`). The `block-pr-create-outside-ship` guard denies creates without that allow.
+- **Never bare `git push`** — always append `# DOTAGENTS_SHIP=1` (branch push, direct-push `HEAD:main`, and fix-red re-pushes). The `warn-push-outside-ship` advisory asks when a remote push lacks that marker. (Do **not** use a leading `DOTAGENTS_SHIP=1` env prefix for push — Claude cannot allow-list past non-known-safe env assignments; PR create keeps its leading-env form.)
 - **Never `--no-verify`** on commit or push — orchestrator discipline + pre-commit hook backstop; there is no `block-git` shell guard. See `references/safety-rules.md`.
 - **Never `git push --force` / `--force-with-lease` / `git reset --hard`** — skill discipline; not blocked by shell guards.
 - **Never `git add -A` or `git add .`** — stage by name to avoid sweeping in untracked secrets, large binaries, or probe artifacts.
 - **Never weaken the gate** — do not disable checks or make unrelated changes to force a green push.
-- **Review outputs are advisory** — verify each surviving Critical/Important finding against the real code path before fixing.
+- **Review outputs are advisory until verified — then fix eagerly** — including optional refactors and tangential cleanups. Do not hand verified findings back as user followups.
+- **No followup punch-lists** — the closing message must not invent work for the user. Either grind it in this run, reject it as invalid/out-of-bounds, or stop and ask before claiming shipped.
 
 ## Cycle bounds
 
@@ -65,7 +69,8 @@ This skill is the only semantic review gate — match depth to profile, not one 
 
 - **`vercel-static` / frontend-only:** default to **light fleet** (5 always-run agents + extension-gated specialists). Full file bodies still required for `code-quality-reviewer`.
 - **`aws-sam` / infra-DB-auth/provider changes:** **full fleet** mandatory — all 10 always-run agents + extension-gated + `confidence-scorer`.
-- **Trivial `docs-config` diff:** skip fan-out (existing trivial path).
+- **Docs-config allowlist skip:** skip fan-out **only** when every changed path matches the allowlist in `references/orchestration.md` step 6 (`.md`/JSON/config/etc.). Any code/logic file → fan-out mandatory — no "this looks trivial" judgment.
+- **Light always-run is literal:** spawn all 5 (`guidelines-auditor`, `bug-scanner`, `security-scanner`, `secrets-scanner`, `code-quality-reviewer`) in one message — never cherry-pick a subset.
 - **Escalation:** if a light review surfaces structural/security/infra concerns, re-run with full fleet before push.
 - Do not rerun the full fleet just to confirm a clean review. Push-fix cycles should not re-fan-out unless the failure is ambiguous or security-sensitive.
 

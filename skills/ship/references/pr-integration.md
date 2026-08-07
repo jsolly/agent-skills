@@ -15,7 +15,7 @@ Use this path when the repo integrates via **branch → PR → CI-gated auto-mer
 2. **Run the local gate** — scope depends on `{CI_OWNER}`:
    - **`local`:** full battery (e.g. `npm test && npm run check:ts && npm run check:biome`, or the repo's documented gate). The pre-commit hook already ran at commit; `/ship` must still run the gate explicitly here before push.
    - **`github-handoff`:** cheap local subset only (repo `AGENTS.md` — typically lint/types/static). Do **not** run unit/E2E or local DB tests as a merge gate; GitHub CI owns those.
-3. **`git push -u origin HEAD`** — never `HEAD:main`, never `--no-verify`.
+3. **`git push -u origin HEAD # DOTAGENTS_SHIP=1`** — never `HEAD:main`, never `--no-verify`. The trailing `# DOTAGENTS_SHIP=1` marker is required: `warn-push-outside-ship` asks on bare remote pushes so agents consider `/ship`. (A leading `DOTAGENTS_SHIP=1` env prefix cannot be allow-listed by Claude — see issue #73.)
 4. **Open PR** — `DOTAGENTS_SHIP=1 gh pr create` with title + body (Summary bullets + Test plan checklist). The `DOTAGENTS_SHIP=1` prefix is required: `block-pr-create-outside-ship` denies bare `gh pr create` so agents cannot skip this skill. If a PR already exists for this branch, skip create and use `gh pr view` (no allow prefix needed).
 5. **Auto-merge** — arm on PRs **you** opened (human or agent using your credentials); never arm third-party/Dependabot PRs:
    - `gh pr merge --auto --squash` (arms immediately; owner/member-gated `auto-merge.yml` re-arms on sync)
@@ -36,7 +36,7 @@ Branch on `{SHIP_PROFILE}` and whether the PR has merged:
 **Watch and fix — never stop at "PR created":**
 
 1. **Watch** required checks: `gh pr checks --watch` or poll until **`CI / ci`** (or the repo's documented required check) completes.
-2. **On failure:** fetch the failing job log (`gh run view <id> --log-failed` or the checks URL), diagnose, fix forward on the same branch, commit, `git push`, and return to step 1. Cap at **3** fix-red-PR cycles; on the 4th, report **`Not merged`** with which check failed.
+2. **On failure:** fetch the failing job log (`gh run view <id> --log-failed` or the checks URL), diagnose, fix forward on the same branch, commit, `git push # DOTAGENTS_SHIP=1`, and return to step 1. Cap at **3** fix-red-PR cycles; on the 4th, report **`Not merged`** with which check failed.
 3. **Out of date / blocked merge:** run `gh pr update-branch` (or equivalent), then re-watch CI.
 4. **On green:** if auto-merge is armed, wait for it to land. If auto-merge is **unavailable (plan-gated)**, merge yourself: `gh pr merge --squash`.
 5. Do **not** run local `deploy:code` while the PR is still open.
@@ -76,4 +76,4 @@ Do **not** use **`Shipped to main`** when integration was via PR unless quoting 
 
 ## Break-glass direct push
 
-`git push origin HEAD:main` bypasses required CI when branch protection has `enforce_admins: false`. Git prints a bypass warning. Use only in emergencies documented in repo `AGENTS.md`. After break-glass push, babysit GitHub CI on `main` when Actions run.
+`git push origin HEAD:main # DOTAGENTS_SHIP=1` bypasses required CI when branch protection has `enforce_admins: false`. Git prints a bypass warning. Use only in emergencies documented in repo `AGENTS.md`. After break-glass push, babysit GitHub CI on `main` when Actions run.

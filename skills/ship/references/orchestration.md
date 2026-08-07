@@ -42,7 +42,7 @@ cannot infer:
 - `CI owner: local | github-handoff`
 - Production URL and genuinely repo-specific deploy/live-check deltas
 
-`docs-config` is derived from the current trivial diff, never declared as a persistent repo profile.
+`docs-config` is derived only when every changed path matches the docs-config allowlist (step 6), never declared as a persistent repo profile.
 `direct-push` is legacy/break-glass, not a routine declaration for a new repo; it requires an
 existing documented exception or an explicit emergency request from the user. Do not copy this
 skill's gate, review, PR, polling, or profile procedure into every repo.
@@ -55,7 +55,7 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 | **`aws-sam`** | `AGENTS.md` declares `aws-sam`, **or** `aws/template.yaml` + fleet SAM pattern (GitHub `deploy.yml` and/or `deploy:code`) | **full** | Confirm GitHub Actions Deploy after green main CI (`workflow_run`; babysit required); surface `deploy:infra` for human when infra paths changed; **if a Vercel/HTTP web tier exists**, also require `x-release-id` ≥ merge SHA |
 | **`heroku-git`** | `AGENTS.md` declares `heroku-git` / Heroku GitHub auto-deploy from `main` | full or light by diff size | After merge, verify Heroku release (`npx heroku releases`) **and** `x-release-id` ≥ merge SHA if the app serves HTTP |
 | **`gate-only`** | Pre-commit gate wired, no deploy entry (e.g. `dotagents`) | full or light by diff size | `deploy: none` / `deploy: no-http-release-id (n/a)` |
-| **`docs-config`** | Markdown/config-only diff, no runtime code | **skipped** (trivial fan-out) | Usually none |
+| **`docs-config`** | Every path in `CHANGED_FILES` matches the **docs-config allowlist** below (no code/logic files) | **skipped** (allowlist-only fan-out skip) | Usually none |
 
 **Detection order:**
 
@@ -70,7 +70,7 @@ skill's gate, review, PR, polling, or profile procedure into every repo.
 | Model | Detect (in order) | Step 11 |
 | --- | --- | --- |
 | **`pr-auto-merge`** (fleet default) | Default unless AGENTS.md declares `Integration: direct-push`; or `## Ship` mentions PR + auto-merge / CI-gated merge; or `.github/workflows/auto-merge.yml` exists | Push branch → `DOTAGENTS_SHIP=1 gh pr create` → arm auto-merge → babysit CI → merge → see `references/pr-integration.md` |
-| **`direct-push`** | Explicit `Integration: direct-push` in AGENTS.md | `git push origin HEAD:main` (current behavior) |
+| **`direct-push`** | Explicit `Integration: direct-push` in AGENTS.md | `git push origin HEAD:main # DOTAGENTS_SHIP=1` (marker silences the advisory hook; `HEAD:main` deny in permissions still fires for user approval) |
 
 **CI owner (`{CI_OWNER}`)** — classify in step 3 with ship profile and integration model. Full detail: `references/ci-owner.md`.
 
@@ -137,9 +137,20 @@ This skill is the sole semantic gate before `main` — **right-size review depth
 
 | Review tier | When |
 | --- | --- |
-| **skipped** | Trivial `docs-config` diff — single-file typo, comment-only, one-value config tweak with no logic |
-| **light** | Default for `vercel-static` / frontend-only when diff is non-trivial and not infra-heavy |
+| **skipped** | **Only** when every path in `CHANGED_FILES` matches the docs-config allowlist (positive allowlist — no judgment call) |
+| **light** | Default for `vercel-static` / frontend-only when the diff is not allowlist-only and not infra-heavy |
 | **full** | Default for `aws-sam`; mandatory when diff touches infra/DB/auth/providers or review-tier override applies |
+
+### Docs-config allowlist (skip predicate)
+
+Skip fan-out (**`skipped`** tier / `docs-config` profile) **if and only if every** path in `CHANGED_FILES` matches one of:
+
+| Kind | Matches |
+| --- | --- |
+| Extensions | `.md`, `.mdx`, `.txt`, `.json`, `.jsonc`, `.toml`, `.yml`, `.yaml`, `.ini`, `.cfg`, `.conf`, `.editorconfig` |
+| Basenames | `.gitignore`, `.gitattributes`, `.npmrc`, `.nvmrc`, `LICENSE`, `LICENSE.*`, `NOTICE`, `CODEOWNERS` |
+
+Anything else — including `.py`, `.ts`, `.js`, `.tsx`, `.jsx`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.sh`, `.bash`, `.go`, `.rs`, `.sql`, `.svelte`, `.vue`, `.astro`, `.css`, lockfiles, binaries, or unknown extensions — **forces fan-out** (`light` or `full` per profile). Do **not** skip because a code change "looks trivial," is "just a rename," or "the gate is already green." There is no model judgment on triviality: allowlist match is binary.
 
 Fleet composition for **light** vs **full** is in `references/agent-fleet.md`. For fan-out, **gather full pending-change context first** (the diff alone hides file-size boundaries and cross-hunk structure). The review scope is the union of committed branch changes, staged changes, unstaged changes, and untracked files:
 
@@ -157,6 +168,20 @@ Fleet composition for **light** vs **full** is in `references/agent-fleet.md`. F
    - Do not truncate — `code-quality-reviewer` needs accurate line counts for the 1k-line rule.
 
 Then launch parallel agents simultaneously per the selected **review tier**. Fleet composition is documented in `references/agent-fleet.md`.
+
+### Light fleet — always-run checklist (non-negotiable)
+
+When `{REVIEW_TIER}` is **light**, spawn **these exact 5** in **one** message (plus any extension-gated agents that match). Do **not** cherry-pick a subset by topic, "relevance," or token cost. Tick each before proceeding:
+
+- [ ] `guidelines-auditor`
+- [ ] `bug-scanner`
+- [ ] `security-scanner`
+- [ ] `secrets-scanner`
+- [ ] `code-quality-reviewer`
+
+`confidence-scorer` runs in step 7 (not part of this fan-out). Extension-gated agents (`a11y-reviewer`, `dependency-scanner`, etc.) still apply per `references/agent-fleet.md`. Light fleet must not silently drop to 2 cherry-picked agents.
+
+**Escalation (unchanged):** if light review surfaces Critical/Important structural, security, or infra findings, re-run with **full** fleet before push.
 
 Each agent receives the dispatch prompt template from `references/dispatch-prompt.md` with these placeholders filled in:
 
@@ -190,25 +215,26 @@ The scorer returns one of:
 - **Confirm Critical** — keep as Critical.
 - **Confirm Important** — keep as Important.
 - **Downgrade to Important** — move from Critical to Important bucket.
-- **Downgrade to Minor** — drop from the report.
+- **Downgrade to Minor** — keep as Minor (still presented and eagerly fixed when verified; skips further scoring).
 - **False positive** — drop from the report.
 
-Drop all Minor findings from the report before scoring (the scorer doesn't see them at all). Also drop findings catchable by tooling (Biome, tsc, test suite) even if they're confirmed — the step-11 gate will surface those.
+Skip Minor findings for `confidence-scorer` only (the scorer doesn't see them). **Keep Minors in the report** for presentation and the step-9 fix loop — the orchestrator verifies them lightly against the real code path. Also drop findings catchable by tooling (Biome, tsc, test suite) even if they're confirmed — the step-11 gate will surface those.
 
 Run scorer calls in parallel where possible — one Task call per finding, never batched (batching lets earlier scores anchor later ones). After scoring, dedupe surviving findings by `(file, line, issue)` — agents with adjacent lenses naturally produce overlapping findings.
 
 ### Review discipline (post-scoring)
 
-Treat review output as advisory. Never blindly apply a finding just because it survived scoring.
+Treat review output as advisory until verified — then **fix eagerly and finish the ship**. Never blindly apply a finding just because it survived scoring, and never leave a verified finding as a user followup because it is optional, tangential, or a refactor.
 
-For each surviving Critical or Important finding, the orchestrator must verify each surviving finding before presenting or fixing:
+For each surviving Critical, Important, or Minor finding, the orchestrator must verify before presenting or fixing:
 
 1. Read the real code path and adjacent code — not just the diff hunk or the agent's excerpt.
 2. When the finding depends on external behavior (library API, framework contract, upstream type), inspect dependency docs, source, or types before accepting or rejecting it.
-3. Reject unrealistic edge cases, speculative risks, broad rewrites, and fixes that over-complicate the codebase.
-4. Prefer small fixes at the right ownership boundary; no refactor unless it clearly improves the bug class.
+3. Reject false positives, unrealistic edge cases, speculative risks, and fixes that over-complicate the codebase or fight ownership boundaries — rejected items need no user action.
+4. Prefer small fixes at the right ownership boundary. **Eagerly accept valid refactor / maintainability / tangential findings** when the concern is real and the fix is bounded — do not reject solely because the work is "optional," "non-essential," or outside the original feature intent.
+5. If a finding is truly unbounded (new architecture, multi-package redesign) or conflicts with an explicit user/spec constraint: **stop and ask** (or hard-fail) — do not ship with a deferred TODO for the user.
 
-Record rejected findings with a brief reason — they feed the step-14 review disposition.
+Record rejected findings with a brief reason — they feed the step-14 review disposition (reject ≠ followup).
 
 ## 8. Present verdict + findings (E.1, E.2)
 
@@ -228,7 +254,7 @@ Verdict thresholds:
 - Any post-scoring Important surviving → **Needs attention**
 - Otherwise → **Ready to push**
 
-If the verdict is **Needs work** or **Needs attention**, stop after presenting findings — do not commit or push until issues are fixed (step 9) and the verdict is **Ready to push**.
+If the verdict is **Needs work** or **Needs attention**, proceed immediately into step 9 in the same run — present findings, then fix them. Do not end the skill here or wait for the user to approve nits. Only pause for an explicit human decision when step 7's unbounded/constraint case applies.
 
 **TL;DR paragraph** (E.2):
 
@@ -245,14 +271,14 @@ Surface architectural notes from step 5 alongside the agent findings.
 
 ## 9. Fix issues + re-smoke (D.3)
 
-- Fix all **verified Critical** issues and reasonable **verified Important** issues. Explain each fix.
-- Skip suggestions that are debatable or require refactoring beyond scope — note why in the review disposition.
-- **Sibling-instance sweep:** when an accepted finding reveals a bug class or repeated pattern, inspect the current changed scope for sibling instances before fixing. Fix the scoped bug class at once when practical; stop at touched surfaces, owner boundaries, and clear follow-up territory.
+- Fix all **verified Critical**, **verified Important**, and **verified Minor** findings. Default bias: **fix eagerly and keep grinding**, including optional refactors and tangential cleanups subagents flagged, when the concern is valid and the fix is bounded. Explain each fix.
+- Do **not** leave verified work as a followup. False/speculative findings are **rejected** (no user action). Unbounded rewrites or explicit user/spec conflicts are **stop-and-ask** — not "shipped with TODOs." Do not skip work merely because it is non-essential relative to the original feature, "nice to have," or a refactor.
+- **Sibling-instance sweep:** when an accepted finding reveals a bug class or repeated pattern, inspect the current changed scope for sibling instances before fixing. Fix the scoped bug class at once when practical; stop at touched surfaces and owner boundaries (not "leave the rest for later").
 - **Re-run smoke checks (step 4) after any review-triggered fix** before committing. Fixes themselves can break things — especially refactor-style fixes that touch multiple call sites. No commit without green smoke.
-- **Re-review after review-triggered code changes:** if any review-triggered fix changed code, rerun focused smoke checks and rerun step 6 + 7 until no accepted/actionable Critical or reasonable Important findings remain. **Scope the re-review to the fix:** re-run only the agents whose lens covers the changed lines (e.g. `bug-scanner` for a logic fix, `security-scanner` for an auth fix) — do a full re-fan-out only when the fix was structural, security-sensitive, or touched many call sites. Do not rerun the full fleet solely to get a cleaner "clean" line once verified findings are resolved.
+- **Re-review after review-triggered code changes:** if any review-triggered fix changed code, rerun focused smoke checks and rerun step 6 + 7 until no accepted/actionable findings remain (Critical, Important, or Minor that would still be fixed under the eager policy). **Scope the re-review to the fix:** re-run only the agents whose lens covers the changed lines (e.g. `bug-scanner` for a logic fix, `security-scanner` for an auth fix) — do a full re-fan-out only when the fix was structural, security-sensitive, or touched many call sites. Do not rerun the full fleet solely to get a cleaner "clean" line once verified findings are resolved.
 - Do not invoke nested review helpers, panels, or sub-reviewers from inside reviewer agents — the orchestrator owns the review loop.
 
-**Loop bound**: 3 cycles total (matches the existing fix-loop bound). On the 4th, surface the failure to the user and stop. Don't push with unresolved Critical findings.
+**Loop bound**: 3 cycles total (matches the existing fix-loop bound). On the 4th, surface the failure to the user and stop — that is a hard stop, not a followup list. Don't push with unresolved verified findings; grind them in this run or stop-and-ask.
 
 ## 10. Stage and commit
 
@@ -273,7 +299,7 @@ Surface architectural notes from step 5 alongside the agent findings.
 Follow **`references/pr-integration.md`** §11:
 
 - Ensure on a feature branch (create from `origin/main` if on `main`).
-- `git push -u origin HEAD` — never `HEAD:main`.
+- `git push -u origin HEAD # DOTAGENTS_SHIP=1` — never `HEAD:main`.
 - `DOTAGENTS_SHIP=1 gh pr create` (or use existing PR for branch).
 - `gh pr merge --auto --squash`; verify auto-merge armed.
 
@@ -283,7 +309,7 @@ Always continue to steps 12–13 (babysit). Cap push-fix at 3 cycles (local gate
 
 The destination is always `main`. The current branch name doesn't matter — the goal is to advance `main` to the current HEAD.
 
-- `git push origin HEAD:main`. Never `--no-verify`.
+- `git push origin HEAD:main # DOTAGENTS_SHIP=1`. Never `--no-verify`. The trailing marker only silences `warn-push-outside-ship`; permissions deny on `HEAD:main` still asks the user.
 - If the remote rejects the push as non-fast-forward, re-run step 2 against fresh `origin/main`, re-run the gate, push again.
 - If the **local gate** rejects before push, read the output, fix, re-run the gate, push again. Cap at 3 cycles.
 
@@ -363,15 +389,17 @@ After steps 10–13 complete, send **one closing message** to the user. This is 
 
 Include in every successful summary: **`Ship profile`**, **`Review tier: light|full|skipped`**, **`Integration model`**, **`CI owner`**, deploy/verify outcome, CI line.
 
-Then: TL;DR of the change, gate checks run (tests / lint / the pre-commit gate battery), deploy outcome, `CI: none (local gate)`, worktree cleanup outcome (step 15), and unresolved Important findings if you pushed despite them (should be rare).
+Then: TL;DR of the change, gate checks run (tests / lint / the pre-commit gate battery), deploy outcome, `CI: none (local gate)`, and worktree cleanup outcome (step 15). **Do not** append a user punch-list, "nice followups," or deferred review TODOs. A successful ship closes the loop.
 
 **Review disposition** — one compact line after the outcome summary:
 
 ```text
-Review: <N> accepted/fixed, <M> rejected (<brief reason>), <K> Important deferred
+Review: <N> accepted/fixed, <M> rejected (<brief reason>)
 ```
 
-Examples: `Review: 2 accepted/fixed, 1 rejected (speculative race — no concurrent caller)`, `Review: 0 findings — clean`.
+Examples: `Review: 2 accepted/fixed, 1 rejected (speculative race — no concurrent caller)`, `Review: 3 accepted/fixed (incl. 1 refactor Minor)`, `Review: 0 findings — clean`.
+
+If the run stopped to ask about an unbounded finding, lead with **`Stopped — not pushed`** (or the appropriate hard-fail line) and state the question — never **`PR merged to main`** / **`Shipped to main`** with leftovers.
 
 **Do not** end a successful run with **"Ready to push"** or **"Review verdict: Ready to push"** — that language belongs to the step-8 review verdict only and reads as if nothing landed on the remote.
 

@@ -136,7 +136,7 @@ Group findings by severity. Use these labels exactly:
 
 ### Minor (nice to have)
 
-[Legibility improvements that do not block ship]
+[Bounded legibility cleanups the orchestrator will eagerly fix before shipping]
 
 For each finding:
 
