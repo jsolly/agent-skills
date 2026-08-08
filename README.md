@@ -50,7 +50,6 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `ship` | Review, gate, integrate to main (PR) |
 | `seo` | Technical SEO + Lighthouse audit |
 | `janitor` | Drain issues/PRs across repos |
-| `explain-diff-html` | Interactive HTML diff explanation |
 | `optimize-workspace` | Monthly workspace audit — drain memories into durable config |
 | `start-feature` | Gauntlet Loop–ready feature session (goal, bar, charter, progress) + isolation |
 | `verify-ui` | Fail-closed UI evidence receipt (route, dual viewports, render-only or interactions) |
