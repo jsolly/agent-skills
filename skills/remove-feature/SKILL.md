@@ -5,8 +5,7 @@ description: 'Use when the user says `/remove-feature`, or wants to fully remove
 
 # Remove Feature
 
-> **Integrate with `/ship`.** This skill deletes repo files and lines across many files. Don't write
-> tracked files on a `main` checkout; isolation is harness-/repo-owned.
+> **Integrate with `/ship`.** This skill deletes repo files and lines across many files.
 
 ## Enter plan mode (first action)
 
@@ -54,7 +53,7 @@ Find **everything the feature added and everything that will orphan when it goes
 
 **B. Codebase call-graph — what references it today.** Start at each entry point and fan outward:
 
-- **`tsc` as your worklist (TS repos).** Delete the entry module (or stub the export), run the repo's typecheck — *the errors enumerate every live reference*. This is the same "let the typechecker be your hands" trick `refactor` uses, run in reverse: each error is a site to triage — delete if feature-only, keep (and repoint) if it's a shared symbol you're not removing. Far more reliable than grep alone for TS.
+- **`tsc` as your worklist (TS repos).** Delete the entry module (or stub the export), run the repo's typecheck — *the errors enumerate every live reference*. Let the typechecker be your hands, run in reverse: each error is a site to triage — delete if feature-only, keep (and repoint) if it's a shared symbol you're not removing. Far more reliable than grep alone for TS.
 - **Static dead-code tools** where present: `knip` (unused files/exports/deps in one pass), `ts-prune`/`unimported`, `depcheck` for now-unused dependencies; `vulture`/`deadcode` for Python. Run them *after* the first deletion pass to surface newly-orphaned code the typechecker won't flag (dynamically-referenced code, unused deps).
 - **Reference grep across every artifact class** — not just `.ts`. The feature's name/flag-key/route will appear in tests, config, env samples (`.env.example`), IaC templates, docs, comments, CSS, and package scripts. `grep -rn '<feature-token>'` across the repo is the orphan census; every hit is a decision.
 

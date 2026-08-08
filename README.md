@@ -45,9 +45,8 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `drawio` | Native `.drawio` XML diagrams |
 | `fyi` | Session handoff snippet |
 | `research` | Deep-research prompt for external tools |
-| `refactor` | Behavior-preserving TypeScript refactors |
 | `remove-feature` | Remove feature/flag/subsystem fully |
-| `find-edgecase-slop` | Find spiked edge-case complexity |
+| `find-edgecase-slop` | Find spiked edge-case complexity (supersedes former `/refactor` cleanup scans) |
 | `ship` | Review, gate, integrate to main (PR) |
 | `seo` | Technical SEO + Lighthouse audit |
 | `janitor` | Drain issues/PRs across repos |

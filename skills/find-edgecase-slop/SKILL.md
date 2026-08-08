@@ -3,11 +3,12 @@ name: find-edgecase-slop
 description: >-
   Use when the user says `/find-edgecase-slop`, or asks to find hard-coded /
   spiked edge-case complexity, edge-case slop, one-off special cases, or places
-  where complexity was spiked for a rare path. Scans the git repo at CWD,
-  switches into plan mode if needed, and turns every finding into its own todo
-  (exhaustive). NOT for auto-fixing those hits, a general refactor/complexity
-  census, or unrelated bug hunting — report + plan todos only unless the user
-  later asks to clean up.
+  where complexity was spiked for a rare path — also the former `/refactor`
+  cleanup-scan niche for "this file is a mess of special cases." Scans the git
+  repo at CWD, switches into plan mode if needed, and turns every finding into
+  its own todo (exhaustive). NOT for auto-fixing those hits, a general
+  behavior-preserving restructure / DRY extract census, or unrelated bug hunting
+  — report + plan todos only unless the user later asks to clean up.
 ---
 
 # Find Edge-Case Slop
