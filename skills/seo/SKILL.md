@@ -7,8 +7,8 @@ description: Use when the user says `/seo`, including `/seo <website>`, or asks 
 
 Use this for technical site-quality work where the expected output is evidence-backed fixes, not a generic checklist. Scope is **technical SEO plus the three other Lighthouse categories** — performance, accessibility, best-practices — audited and iterated together with Ahrefs/GSC/Squirrel SEO evidence. Not content, keyword, or marketing strategy.
 
-> **Integrate with `/ship`.** When this skill edits repo files (robots.txt, sitemaps, canonicals,
-> config), don't write tracked files on a `main` checkout; isolation is harness-/repo-owned.
+> **Integrate with `/ship`.** This skill may edit repo files (robots.txt, sitemaps, canonicals,
+> config).
 
 ## Required first reads
 

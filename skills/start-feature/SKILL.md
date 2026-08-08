@@ -10,8 +10,8 @@ working inside it, the documented local app server running from that tree, and a
 pointed at the local URL. Stop once the room is ready — do not start implementing unless the user
 explicitly continues.
 
-This skill opens a worktree ready-room when you want one. Isolation for other skills is
-harness-/repo-owned; integration later is `/ship`; browser smoke after edits is `/verify-ui`.
+This skill opens a worktree ready-room when you want one. Integration later is `/ship`; browser
+smoke after edits is `/verify-ui`.
 
 ## Output contract
 

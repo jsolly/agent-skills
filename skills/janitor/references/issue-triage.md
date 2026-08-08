@@ -49,10 +49,8 @@ already exists) leaves the exact window where two passes could each start a work
 
 For an issue that has passed triage and been claimed:
 
-1. **Don't write tracked files on a `main` checkout** (`block-edit-on-main`). Isolation
-   (worktree / topic branch / harness default) is harness-/repo-owned. One issue per branch.
-   Parallelize across subagents when several issues are actionable (see `reporting-and-loop.md` →
-   Bounding), each on its own branch.
+1. **One issue per branch.** Parallelize across subagents when several issues are actionable
+   (see `reporting-and-loop.md` → Bounding), each on its own branch. Integrate via `/ship`.
 2. **Build the change the issue specifies**, scoped to it (invariant 10). Match the repo's
    conventions — read its `AGENTS.md`, the neighbouring code, the shared utilities — before adding
    anything. For a bug report, reproduce first, then fix + add the regression test.
