@@ -10,8 +10,8 @@ working inside it, the documented local app server running from that tree, and a
 pointed at the local URL. Stop once the room is ready — do not start implementing unless the user
 explicitly continues.
 
-This skill is the bootstrap that `rules/worktree-authoring.md` assumes: change-making work happens
-off `main` in a worktree. Integration later is `/ship`; browser smoke after edits is `/verify-ui`.
+This skill opens a worktree ready-room when you want one. Isolation for other skills is
+harness-/repo-owned; integration later is `/ship`; browser smoke after edits is `/verify-ui`.
 
 ## Output contract
 
@@ -40,11 +40,10 @@ dev command, server never becomes ready), say what failed and stop — do not pr
    Reject empty / purely generic names like `feat/feature`.
 
 3. **Create the worktree.** Fetch `origin/main` (or the repo's default base). Add a linked worktree
-   on a new local branch off that tip with `--no-track`. Location is harness-owned
-   (`rules/worktree-authoring.md`) — common choices are the harness default under the repo or
-   `~/code/.worktrees/<repo>/<slug>/`; pick one consistent with the host and do not hard-code a
-   single path in scripts. If the path or branch already exists, stop and report rather than
-   clobbering.
+   on a new local branch off that tip with `--no-track`. Location is harness-owned — common choices
+   are the harness default under the repo or `~/code/.worktrees/<repo>/<slug>/`; pick one consistent
+   with the host and do not hard-code a single path in scripts. If the path or branch already
+   exists, stop and report rather than clobbering.
 
 4. **Provision when the repo says so.** Read the target repo's `AGENTS.md` (and any
    `.worktreeinclude` / `worktree:provision` / `worktree:init` docs). Run only the repo-documented

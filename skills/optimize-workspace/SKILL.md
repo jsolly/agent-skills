@@ -5,9 +5,9 @@ description: Use when the user says `/optimize-workspace` or `/memory-to-config`
 
 # Optimize Workspace
 
-> **Author in a worktree.** Repo edits from this skill (dotagents or child repos) integrate via
-> `/ship` — work in a git worktree off `main`, never the primary checkout on `main`
-> (`rules/worktree-authoring.md`). Machine edits and memory deletions apply live.
+> **Integrate with `/ship`.** Repo edits from this skill (dotagents or child repos) must not land as
+> tracked writes on a `main` checkout; isolation is harness-/repo-owned. Machine edits and memory
+> deletions apply live.
 
 A **monthly, attended** capital-plan pass that makes agents quieter: less rediscovery, preferences in
 standing brief/config, skills findable by the words you actually say, and a thinner memory corpus.

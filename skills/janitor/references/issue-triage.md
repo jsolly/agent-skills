@@ -49,15 +49,16 @@ already exists) leaves the exact window where two passes could each start a work
 
 For an issue that has passed triage and been claimed:
 
-1. **Author in a worktree off `main`** (never the primary checkout —
-   `rules/worktree-authoring.md`). One issue per worktree/branch. Parallelize across subagents when
-   several issues are actionable (see `reporting-and-loop.md` → Bounding), each in its own worktree.
+1. **Don't write tracked files on a `main` checkout** (`block-edit-on-main`). Isolation
+   (worktree / topic branch / harness default) is harness-/repo-owned. One issue per branch.
+   Parallelize across subagents when several issues are actionable (see `reporting-and-loop.md` →
+   Bounding), each on its own branch.
 2. **Build the change the issue specifies**, scoped to it (invariant 10). Match the repo's
    conventions — read its `AGENTS.md`, the neighbouring code, the shared utilities — before adding
    anything. For a bug report, reproduce first, then fix + add the regression test.
-3. **Run the repo's own gate** in the worktree (`npm run check:ts`, lint, affected tests — read the
+3. **Run the repo's own gate** (`npm run check:ts`, lint, affected tests — read the
    repo's `AGENTS.md`/`package.json`) before trusting CI. Don't ship what you haven't run.
-4. **`/ship` it.** Invoke the `ship` skill from the worktree — it runs the review-agent fleet,
+4. **`/ship` it.** Invoke the `ship` skill — it runs the review-agent fleet,
    **fixes verified findings or stops without pushing** (never opens a PR carrying an unaddressed
    high-confidence finding), runs the gate, opens the PR, babysits CI (watch + fix red), and merges
    on `pr-auto-merge` repos. Put **`Closes #<n>`** in the PR body so the merge closes the issue.

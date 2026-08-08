@@ -21,8 +21,13 @@ interface BrowserConsoleMessage {
 	text(): string;
 }
 
+interface BrowserRouteRequest {
+	url(): string;
+	resourceType(): string;
+}
+
 interface BrowserRoute {
-	request(): { url(): string };
+	request(): BrowserRouteRequest;
 	abort(errorCode?: string): Promise<void>;
 	continue(): Promise<void>;
 }
@@ -198,7 +203,21 @@ async function waitUntilReady(
 			if (response.status >= 200 && response.status < 300) {
 				return;
 			}
-			lastFailure = `HTTP ${response.status}`;
+			if (response.status >= 300 && response.status < 400) {
+				const location = response.headers.get("location");
+				if (location !== null) {
+					const next = new URL(location, url);
+					if (next.origin === new URL(url).origin) {
+						// Same-origin redirect means the server is up; navigation owns path fidelity.
+						return;
+					}
+					lastFailure = `HTTP ${response.status} to cross-origin ${next.origin}`;
+				} else {
+					lastFailure = `HTTP ${response.status} without Location`;
+				}
+			} else {
+				lastFailure = `HTTP ${response.status}`;
+			}
 		} catch (error) {
 			lastFailure = error instanceof Error ? error.message : String(error);
 		}
@@ -355,10 +374,14 @@ async function main(): Promise<void> {
 				const page = await context.newPage();
 				if (page.route !== undefined) {
 					await page.route("**/*", async (route) => {
-						const requestUrl = new URL(route.request().url());
-						if (requestUrl.origin !== requested.origin) {
-							await route.abort("blockedbyclient");
-							return;
+						const request = route.request();
+						// Block only document navigations that leave the origin; allow CDN subresources.
+						if (request.resourceType() === "document") {
+							const requestUrl = new URL(request.url());
+							if (requestUrl.origin !== requested.origin) {
+								await route.abort("blockedbyclient");
+								return;
+							}
 						}
 						await route.continue();
 					});

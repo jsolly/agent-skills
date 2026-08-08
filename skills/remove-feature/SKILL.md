@@ -5,7 +5,8 @@ description: 'Use when the user says `/remove-feature`, or wants to fully remove
 
 # Remove Feature
 
-> **Author in a worktree.** This skill deletes repo files and lines across many files — work in a git worktree off `main`, never the primary checkout on the `main` branch (`rules/worktree-authoring.md`). Integrate with `/ship`.
+> **Integrate with `/ship`.** This skill deletes repo files and lines across many files. Don't write
+> tracked files on a `main` checkout; isolation is harness-/repo-owned.
 
 ## Enter plan mode (first action)
 
