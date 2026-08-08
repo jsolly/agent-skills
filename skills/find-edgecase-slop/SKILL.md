@@ -13,85 +13,30 @@ description: >-
 
 # Find Edge-Case Slop
 
-Look for places where we have hard coded or spiked the complexity for an edge
-case. Report your findings.
+Read-only plan: locate rare-path / hard-coded spikes in the **CWD git repo**, report evidence, materialize one pending todo per hit. No edits/PRs unless the user later asks to clean up.
 
-This skill is **read-only planning**: enter plan mode, scan the CWD repo, and
-materialize every hit as a todo. Do not edit code or start cleanup unless the
-user explicitly asks after reviewing the plan.
+## First action: plan posture
 
-## Enter plan mode (first action)
-
-1. **If the session is not already in plan mode, switch into it** (Cursor:
-   `SwitchMode` → `plan`; other harnesses: the equivalent read-only / planning
-   posture if available). Explain briefly: edge-case slop findings must land as
-   a plan with exhaustive todos before any cleanup.
-2. **If already in plan mode, stay there** — do not bounce modes.
-3. Stay in plan mode through the scan and todo materialization. **Only leave
-   plan mode if the user later asks to clean up** (then switch to agent /
-   implementation mode).
+If not already in plan/read-only mode, switch into it (Cursor: `SwitchMode` → `plan`). Stay there through scan + todos. Leave only if the user later asks to implement.
 
 ## Scope
 
-- **Repo = CWD.** Resolve the git repo rooted at (or containing) the current
-  working directory. Scan that repo only — not sibling repos under `~/code`.
-- **If CWD is not inside a git repo**, stop and say so. Do not invent a target.
-- **No path argument required.** Optional focus hints from the user (a path,
-  module, or subsystem) narrow the scan; otherwise cover the whole repo.
+- Repo = `git rev-parse --show-toplevel` for CWD. Scan that tree (not limited to dirty files; not sibling repos).
+- Not a git repo → stop and say so.
+- Optional user focus hint narrows; otherwise whole repo.
 
-## What counts as edge-case slop
+## What counts (precision)
 
-Flag **hard-coded or spiked complexity for a rare / one-off path** — not every
-branch, guard, or validation. Prefer hits that look like debt, not legitimate
-domain rules.
+Flag **hard-coded or spiked complexity for a rare/one-off path** — debt, not durable domain rules.
 
-Smell patterns (non-exhaustive):
+Smells: customer/ID/locale/date special-case ladders; magic allow/deny maps for one case; near-duplicate happy-path copies with one twist; comment-marked hacks (`edge case` / `HACK` / rare-path `FIXME`); obsolete one-caller shims; test fixtures that forced a permanent production special case.
 
-- Special-cased branches / `if` ladders for a single weird input, customer, ID,
-  locale, browser, or date
-- Magic literals, allowlists, denylists, or override maps whose only job is one
-  rare case
-- Near-duplicate copies of a happy-path function with one extra twist
-- Comment-marked spikes (`// edge case`, `// hack for …`, `// special case for
-  X`, `FIXME` / `HACK` tied to a rare path)
-- Compatibility shims or one-off adapters that exist only for an obsolete or
-  singular caller
-- Test-only fixtures that force production code to grow a permanent special case
-
-**Do not flag** ordinary validation, null checks, standard error handling, or
-complexity that clearly encodes a durable product rule — unless it's clearly a
-one-off spike that should have been a general mechanism.
+**Do not flag** ordinary validation, null checks, standard errors, or complexity that clearly encodes a lasting product/regulatory rule — unless it's obviously a one-off spike that should have been a general mechanism. Empty result is valid; inventing filler is not.
 
 ## Procedure
 
-1. Enter plan mode (above).
-2. Confirm the CWD git root (`git rev-parse --show-toplevel`).
-3. Scan the repo (respecting any user focus hint). Use search + targeted reads;
-   prefer evidence (file:line, short quote of the spike) over vibes.
-4. Report findings briefly in the plan (path + why it's edge-case slop).
-5. **Immediately materialize exhaustive todos** (below). The plan is incomplete
-   until every finding is a todo.
-6. Pause. Do not edit or clean up unless the user asks.
-
-## Materialize the full todo list (still plan mode)
-
-After the scan, **create a todo for every finding** via the harness todo tool
-(`TodoWrite` in Cursor; equivalent elsewhere). Mandatory — not optional polish.
-
-- **One todo per finding**, not one vague "clean up edge cases" bucket.
-- **Content must stand alone** — `path` (ideally `file:line`) + short why
-  ("Hard-coded override for customer X in `foo.ts:42`"). Vague todos fail this
-  gate.
-- **Exhaustive** — every reported finding gets a todo; no silent omissions.
-  If the scan finds nothing, say so in one sentence and leave the todo list
-  empty (do not invent filler todos).
-- Mark all todos `pending`. Only flip them when the user later asks to act and
-  work lands.
-
-## Don't
-
-- Don't edit code, open cleanup PRs, or leave plan mode unless the user asks.
-- Don't expand into a general complexity / refactor census — stay on edge-case
-  spikes.
-- Don't invent findings to fill the list; empty is a valid result.
-- Don't scan outside the CWD git repo.
+1. Enter/stay plan mode.
+2. Confirm git root; scan with evidence (`path` ideally `file:line` + brief why).
+3. Report findings briefly.
+4. **Immediately** create the full todo list via the harness todo tool (`TodoWrite` / equivalent) — mandatory: one standalone pending todo per finding; exhaustive; no bucket todos. Nothing found → one sentence, empty todos.
+5. Pause for user review.

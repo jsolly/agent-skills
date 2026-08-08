@@ -3,65 +3,57 @@ name: ship
 description: Use when the user asks to push changes, says `/ship`, asks to open/create/publish/file a PR or pull request, asks for "review and push" / "commit and push" / "ship it" / "push and fix CI until green", or otherwise indicates they're ready to integrate local work to `main`. Do NOT invoke for routine in-flight commits, or for inspecting/merging an already-open PR (`gh pr view`/`merge` — e.g. `/janitor`). PR publish is owned by this skill — never bare `gh pr create` outside it.
 ---
 
-# Ship — review, gate, integrate to main
+# Ship
 
-Sole fleet path that reviews, gates, integrates, babysits CI, and verifies deploy. Grind to a **terminal shipped/failed state** in one run. Zero agent-owned followups on success. Unbounded human decisions → stop-and-ask (or hard-fail at a cycle cap) — never ship with leftovers.
+Sole fleet path: review → local gate → integrate → babysit CI → merge/land → post-land prove → **terminal close** in one run. Zero agent followups on success.
 
-**Not success:** “PR created,” “LGTM,” “ready to push,” or ending mid-babysit as **`PR open — auto-merge pending CI`**. That in-progress line is valid only while still watching in-session.
+**Not success:** PR created, LGTM, ready-to-push, or abandoned babysit. Mid-flight `PR open — auto-merge pending CI` is valid **only while still watching**.
 
-## Fleet facts (do not invent)
+## Profile (from `AGENTS.md` ## Ship — do not invent)
 
-Read repo root `AGENTS.md` `## Ship` (and linked rules). Classify once, then follow profile behavior:
-
-| Variable | Fleet defaults / values |
+| Var | Values |
 | --- | --- |
-| `{SHIP_PROFILE}` | `vercel-static` · `aws-sam` · `heroku-git` · `gate-only` (plus derived `docs-config` when allowlist-only) |
-| `{INTEGRATION_MODEL}` | **`pr-auto-merge`** (default) · `direct-push` only if AGENTS.md declares it or user demands emergency bypass |
-| `{CI_OWNER}` | **`local`** (full local gate before push) · `github-handoff` (cheap local subset only — still babysit remote CI) |
+| `{SHIP_PROFILE}` | `vercel-static` · `aws-sam` · `heroku-git` · `gate-only` (+ `docs-config` when allowlist-only) |
+| `{INTEGRATION_MODEL}` | **`pr-auto-merge`** default · `direct-push` only if declared or emergency bypass |
+| `{CI_OWNER}` | **`local`** = full local gate before push · `github-handoff` = cheap local subset (still babysit remote CI) |
 
-Details: `references/profiles.md`, `references/deploy-verify.md`, `references/integrate.md`.
+Details: `references/profiles.md`, `deploy-verify.md`, `integrate.md`.
 
-## Loop (ends, not a rigid step script)
+## Caps (exhaustion → hard-stop terminal)
 
-1. **Sync** working branch with `origin/main`; resolve conflicts; smoke (tests/types as applicable).
-2. **Classify** profile / integration / CI owner; capture production URL + deploy/live-check deltas from AGENTS.md.
-3. **Semantic review** at right-sized depth — or skip fan-out **only** when every changed path matches the docs/config allowlist (`references/profiles.md`). Any code/logic path forces review; no “looks trivial” skip. If light review surfaces Critical/Important structural, security, or infra findings → escalate to full-depth before push.
-4. **Fix verified findings in-run** (Critical / Important / bounded Minors) or reject with reason; unbounded redesign / user-spec conflict → stop-and-ask. Cap review-fix at **3** cycles.
-5. **Stage by name** (never `git add -A` / `git add .`); commit describing **original intent**, not review choreography.
-6. **Re-run the documented local gate** explicitly before push (`local` = full; `github-handoff` = cheap subset only — do not invent a fuller battery). Cap local push-gate-fix at **3**. Never `--no-verify`, never weaken the gate.
-7. **Integrate** — default PR path (`references/integrate.md`): marked push → ship-owned PR create → arm auto-merge when available (never on third-party/Dependabot) → babysit required checks → fix-red (cap **3**) → merge when green (manual squash if plan-gated). Direct-push only when authorized.
-8. **Post-land prove** per profile (`references/deploy-verify.md`). HTTP apps: `x-release-id` ≥ merge SHA (ancestor), not READY/200 alone. Missing / `dev` / dirty / behind = fail.
-9. **Close** with a contract terminal (`references/close.md`). Clean up **this** linked worktree when preconditions hold.
+Review-fix · local push-gate-fix · PR CI fix-red — each **3**. Then `Not merged` / `Not pushed` / `Stopped — not pushed`. Never weaken gates/tests to force green.
 
-## Hard safety (non-negotiable)
-
-Marker asymmetry is guard-required — **forms are not interchangeable**:
+## Marker asymmetry (forms not interchangeable)
 
 | Action | Required form |
 | --- | --- |
-| Open/publish PR | Leading env: `DOTAGENTS_SHIP=1 gh pr create …` (bare create is denied) |
-| Remote `git push` (branch, fix-red, direct-push) | Trailing comment: `git push … # DOTAGENTS_SHIP=1` (do **not** use leading env for push) |
+| Open/publish PR | `DOTAGENTS_SHIP=1 gh pr create …` (leading env) |
+| Remote `git push` | `git push … # DOTAGENTS_SHIP=1` (trailing comment — **not** leading env) |
 
-Also never: `--no-verify`; `git push --force` / `--force-with-lease`; `git reset --hard`; blanket staging; auto `deploy:infra` / admin-MFA stack deploys; improvising undeclared deploy commands; working around prod-DB-migration / stack-teardown guards; deploying a branch state not on `main`; arming auto-merge on PRs this run did not open.
+Also never: `--no-verify`; force-push / `--force-with-lease`; `reset --hard`; blanket `git add -A`/`.`; bare PR create; auto-merge on third-party/Dependabot or PRs this run did not open; undeclared deploy; verify off-`main`; bypass prod-migration / stack-teardown guards. See `references/fleet-guards.md`.
 
-Full guard model: `references/fleet-guards.md`.
+## Loop
 
-## Terminal outcomes (lead line)
+1. Sync with `origin/main`; classify profile / integration / CI owner.
+2. Semantic review (or docs/config allowlist skip **only** if every path qualifies). Light → Critical/Important structural/security/infra ⇒ escalate full before push. Fix verified findings in-run or stop-and-ask.
+3. Stage **named paths**; commit = original intent.
+4. Re-run documented local gate before push (`local` full / `github-handoff` cheap — do not invent fuller battery).
+5. Integrate (`references/integrate.md`): marked push → ship-owned PR → arm auto-merge when available → babysit → fix-red within cap → merge when green (manual squash if plan-gated).
+6. Post-land prove (`references/deploy-verify.md`). HTTP: `x-release-id` ≥ merge SHA (ancestor), not READY/200 alone. `gate-only` / n/a = say so.
+7. Close (`references/close.md`). Clean **this** linked worktree when preconditions hold.
+
+## Terminal lead lines
 
 | Lead | When |
 | --- | --- |
-| **`PR merged to main`** | PR path; required CI green; merge landed; profile deploy/verify OK (or explicit n/a) |
-| **`Shipped to main`** | Direct-push / break-glass only — never for the PR path |
-| **`Merged/Pushed — deploy/verify failed`** | Landed on `main`, runtime/deploy/live proof failed |
-| **`Not merged`** / **`Not pushed`** / **`Stopped — not pushed`** | Cap exhaustion, unresolved verified Critical/Important, or stop-and-ask |
+| **`PR merged to main`** | PR path; CI green; merged; deploy/verify OK or explicit n/a |
+| **`Shipped to main`** | Direct-push / break-glass only — never PR path |
+| **`Merged/Pushed — deploy/verify failed`** | On `main`, runtime proof failed |
+| **`Not merged`** / **`Not pushed`** / **`Stopped — not pushed`** | Cap / unresolved Critical-Important / stop-and-ask |
 
-Successful close includes: ship profile, review depth/disposition, integration model, CI owner, deploy/verify line, CI line, worktree line. See `references/close.md`.
+Success receipt fields: ship profile, review depth/disposition, integration model, CI owner, deploy/verify, CI, worktree.
 
 ## References
 
-- `references/profiles.md` — classification, docs allowlist, review depth / escalation
-- `references/integrate.md` — PR create/push markers, CI babysit, merge, cycle caps
-- `references/deploy-verify.md` — per-profile post-land proof + release-id ancestry
-- `references/fleet-guards.md` — ship markers + git discipline vs shell guards
-- `references/close.md` — terminals, summary fields, worktree cleanup
-- `scripts/verify-x-release-id.sh` — optional poll helper for HTTP release-id ≥ merge SHA
+- `references/profiles.md` · `integrate.md` · `deploy-verify.md` · `fleet-guards.md` · `close.md`
+- `scripts/verify-x-release-id.sh` — HTTP release-id ≥ merge SHA helper

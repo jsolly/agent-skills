@@ -1,93 +1,28 @@
 ---
 name: drawio
-description: Use when the user says `/drawio`, asks for a draw.io diagram, or wants an editable native .drawio XML file with optional PNG/SVG/PDF export. NOT for Mermaid-only diagrams, data-heavy charts, or editing an existing diagram without its source XML.
-disable-model-invocation: true
+description: Use when the user says `/drawio`, asks for a draw.io diagram, or wants an editable native `.drawio` XML file with optional PNG/SVG/PDF export. NOT for Mermaid-only diagrams, data-heavy charts, or editing an existing diagram without its source XML.
 ---
 
-# Draw.io Diagram Skill
+# Draw.io
 
-Write native `.drawio` files (`mxfile` XML). Optionally export to PNG, SVG, or PDF via the desktop CLI — exported files embed the diagram XML so they remain editable in draw.io. There is no Mermaid conversion, shape-search, or layout/routing API — generate XML directly.
+Write native `mxfile` XML directly (no Mermaid/CSV server conversion). One concrete diagram file.
 
-## Supported diagrams
+## Export / embed (load-bearing)
 
-- **Standard** — flowcharts, org charts, mind maps, timelines, Venn diagrams
-- **Software** — UML (class, sequence, activity, use case), ERD, architecture
-- **Cloud / infra** — AWS, Azure, GCP, Kubernetes, network topology (use `shape=mxgraph.*`)
-- **Engineering** — electrical / digital logic, P&ID, floor plans
-- **Business** — BPMN, value streams, customer journeys, SWOT
-- **UI/UX** — wireframes, mockups, sitemaps
-- **Other** — data flows, decision trees, infographics
-
-## Workflow
-
-1. Generate `.drawio` XML using the `mxfile` wrapper (inner `mxGraphModel`) for the requested diagram
-2. Write to `<name>.drawio` in the working directory
-3. If the user wants an export format, run the CLI with `--embed-diagram`, then delete the source `.drawio`
-4. Open the result with `open <file>`
-
-Check the user's request for a format preference:
-
-- `/drawio create a flowchart` → `flowchart.drawio`
-- `/drawio png flowchart for login` → `login-flow.drawio.png`
-- `/drawio svg: ER diagram` → `er-diagram.drawio.svg`
-- `/drawio pdf architecture overview` → `architecture-overview.drawio.pdf`
-
-If no format is mentioned, write the `.drawio` file and open it.
-
-### Supported export formats
-
-| Format | Embed XML | Notes |
-| -------- | ----------- | ------- |
-| `png` | Yes (`-e`) | Viewable everywhere, editable in draw.io |
-| `svg` | Yes (`-e`) | Scalable, editable in draw.io |
-| `pdf` | Yes (`-e`) | Printable, editable in draw.io |
-| `jpg` | No | Lossy, no embedded XML support |
-
-## CLI path
+macOS desktop CLI — **`-e` is required** for any export claimed editable in draw.io:
 
 ```text
-/Applications/draw.io.app/Contents/MacOS/draw.io -x -f <format> -e -b 10 -o <output> <input.drawio>
+/Applications/draw.io.app/Contents/MacOS/draw.io -x -f <png|svg|pdf> -e -b 10 -o <name>.drawio.<ext> <name>.drawio
 ```
 
-If the CLI isn't found, keep the `.drawio` file and tell the user.
+- Name exports with the **double extension** (`name.drawio.png` / `.drawio.svg` / `.drawio.pdf`). That signals embedded diagram source.
+- **jpg** (and any format that cannot embed source) is never the editable deliverable — keep `.drawio` as source of truth; do not claim the raster is editable.
+- If the CLI is missing or embed fails: keep the native `.drawio` and say so. Do not pretend export succeeded.
+- Delete the intermediate `.drawio` only when an embed-capable export was requested **and** that export succeeded.
 
-## Gotchas
+## XML that silently breaks files
 
-- **Always generate XML directly.** Mermaid and CSV formats require server-side conversion and cannot be saved as native `.drawio` files.
-- **Never include XML comments (`<!-- -->`)** — they waste tokens and can cause parse errors.
-- **Escape special characters** in attribute values: `&amp;`, `&lt;`, `&gt;`, `&quot;`
-- **Use unique `id` values** for every `mxCell`.
-- **Every edge needs geometry**: an edge `mxCell` without a child `<mxGeometry relative="1" as="geometry" />` won't render.
-- **Use double extensions for exports** (`name.drawio.png`) — signals the file contains embedded diagram XML.
-
-## Troubleshooting
-
-| Problem | Cause | Solution |
-| --------- | ------- | ---------- |
-| CLI not found | Desktop app not installed | Keep the `.drawio` file; tell the user to install draw.io desktop |
-| Export produces empty/corrupt file | Invalid XML (unescaped chars, comments) | Validate XML well-formedness before writing |
-| Diagram opens but looks blank | Missing root cells `id="0"` and `id="1"` | Ensure the basic mxGraphModel structure is complete |
-| Edges not rendering | Edge mxCell is self-closing (no child mxGeometry) | Every edge must have `<mxGeometry relative="1" as="geometry" />` |
-
-## Minimal XML skeleton
-
-Prefer a proper `.drawio` wrapper (`mxfile` → `diagram` → `mxGraphModel`). Bare `mxGraphModel` often opens in desktop, but the wrapper is the real file shape.
-
-```xml
-<mxfile host="app.diagrams.net">
-  <diagram id="page-1" name="Page-1">
-    <mxGraphModel adaptiveColors="auto" grid="1" gridSize="10" page="1" pageWidth="850" pageHeight="1100">
-      <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-      </root>
-    </mxGraphModel>
-  </diagram>
-</mxfile>
-```
-
-Cell `0` is the root layer; cell `1` is the default parent. All diagram elements use `parent="1"` unless using multiple layers.
-
-## XML reference
-
-@references/xml-reference.md
+- No `<!-- comments -->` in the diagram XML.
+- Escape attribute specials: `&amp;` `&lt;` `&gt;` `&quot;`.
+- Every edge needs a child `<mxGeometry relative="1" as="geometry" />` (self-closing edges do not render).
+- Never treat Mermaid-only or a non-embedded export as a native/editable draw.io file; do not edit an existing diagram without its source XML.

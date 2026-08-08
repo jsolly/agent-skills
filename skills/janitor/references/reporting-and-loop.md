@@ -128,4 +128,6 @@ the plist.
 
 ## Wiring
 
-On a laptop host, link this skill into discovery paths with the host skill installer, then run the doctor script. On Cursor Cloud, `.cursor/install-cloud-skills.sh` installs the public package. Skills are auto-discovered from `skills/*/`.
+On a laptop host, link this skill into discovery paths with the host skill installer, then run the
+doctor script. On Cursor Cloud, `.cursor/install-cloud-skills.sh` installs the public package.
+Skills are auto-discovered from `skills/*/`.
