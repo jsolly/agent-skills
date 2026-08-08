@@ -1,82 +1,79 @@
 ---
 name: start-feature
-description: Use when the user says `/start-feature`, or asks to start a new feature room / spin up a worktree with the local app running — create a topic-branch worktree, move the agent into it, start the repo's documented dev server from that worktree, and open an embedded browser at the local URL. NOT for verifying UI after a change (`/verify-ui`), integrating to main (`/ship`), or continuing work already inside a feature worktree.
+description: Use when the user says `/start-feature`, or asks to start a new feature room / spin up a worktree with the local app running — prepare a Gauntlet Loop–ready feature session (outcome goal, inspectable quality bar, loop charter, live progress stub) in isolated topic-branch worktree with agent root moved there, and when the repo has UI, documented local server + browser from that tree. NOT for verifying UI after a change (`/verify-ui`), integrating to main (`/ship`), or continuing work already inside a feature worktree.
 ---
 
 # Start Feature
 
-Open a disposable **ready room** for feature work: a clean topic-branch worktree, the agent
-working inside it, the documented local app server running from that tree, and an embedded browser
-pointed at the local URL. Stop once the room is ready — do not start implementing unless the user
-explicitly continues.
+**Product:** a truthful **Gauntlet Loop–ready** feature session for a named goal — then **stop at prepare**.
 
-This skill opens a worktree ready-room when you want one. Integration later is `/ship`; browser
-smoke after edits is `/verify-ui`.
+Isolation (worktree, agent-root move, local server, browser) is means when UI applies. A worktree alone is not success. Do not implement, commit, run builder/critic rounds, `/verify-ui`, or `/ship` unless the user explicitly continues past prepare.
 
-## Output contract
+Public method: [Gauntlet Loop](https://somethingbig.ai/gauntlet-loop). Session law below is binding; do not re-derive a weaker variant.
 
-End with a short ready-room receipt (plain text, no preamble fluff):
+## Product gate (every `ready` claim)
 
-- **Repo** — absolute path of the primary checkout used as the worktree base
-- **Branch** — new topic branch name
-- **Worktree** — absolute path of the linked worktree
-- **Dev server** — command used + local origin (e.g. `http://127.0.0.1:3000`)
-- **Browser** — opened route (default: the repo's documented local route, else `/`)
-- **Status** — `ready` only when the worktree exists, the agent root is that worktree, the server
-  answers HTTP on the local origin, and the browser navigated there
+All five required; omit any → fail closed, no ready:
 
-If any step cannot complete (no git repo, no Local UI verification guidance and no inventable
-dev command, server never becomes ready), say what failed and stop — do not pretend the room is up.
+1. **Goal** — outcome destination from invoke arg or one focused ask. Not architecture, workstreams, or sprint plans. Reject empty/generic ("improve the app", `feat/feature`).
+2. **Bar** — concrete critic-inspectable comparison (reference product/pages, tests, latency, security checks, viewport/console criteria). Slogans ("perfect", "AAA", "production-ready", "amazing", "fast") are not a bar. If user gave none or only slogans: one focused ask **or** record an explicit **find-the-bar** mandate (same role Call of Duty screenshots played for Claude of Duty) — never invent a fake user-supplied bar.
+3. **Loop charter** — durable note in the isolation (and summarized in the receipt) binding later work to:
+   - Lead decomposes into smallest independently judged pieces (lead chooses pieces; user architecture ideas are optional context, not the goal).
+   - **Builder ≠ critic** — fresh critic context; no planned self-grading; critics judge real artifacts (pixels/tests/running product), blind A/B when possible — never builder summaries.
+   - **Keep looping** until bar met or user stops — no fixed round caps.
+   - Optional smoothing after major waves available; not the core.
+4. **Live progress stub** — HTML page, workbench doc, or equivalent exists and is named in the receipt (stub OK; format is means).
+5. **Isolation truth** — topic branch + linked worktree (or harness-equivalent); agent working root **is** that isolation; when UI applies, documented origin serves **this** tree and browser reached the local route.
 
-## Procedure
+## Fleet means (not inventable)
 
-1. **Resolve the repo.** From the current workspace, `git rev-parse --show-toplevel`. Prefer the
-   **primary checkout** (`.git` is a directory) as the worktree base. If already inside a linked
-   worktree, resolve the common git dir / primary and create the new worktree from there — do not
-   nest worktrees. Abort if this is not a git repo.
+### Git / worktree
 
-2. **Name the branch.** From the invocation argument or a single focused ask, derive a kebab-case
-   slug and branch `feat/<slug>` (or the repo's documented branch prefix if `AGENTS.md` names one).
-   Reject empty / purely generic names like `feat/feature`.
+- Must be a git repo; abort otherwise.
+- Create from the **primary checkout** (`.git` is a directory). If currently in a linked worktree, resolve common base / primary — **never nest** worktrees.
+- Branch: `feat/<kebab-slug>` or the repo's documented prefix. Reject empty/generic slugs.
+- Fetch default base (`origin/main` or repo default); add linked worktree on new local branch with `--no-track`.
+- Path is harness-owned (harness default under the repo, or e.g. `~/code/.worktrees/<repo>/<slug>/`). If path or branch exists → **stop and report**; never clobber, delete, reset, or reuse another task's dirty room.
+- Provision only what the target `AGENTS.md` / `.worktreeinclude` / `worktree:provision` / `worktree:init` documents (e.g. `npm ci`). Do not invent infra.
 
-3. **Create the worktree.** Fetch `origin/main` (or the repo's default base). Add a linked worktree
-   on a new local branch off that tip with `--no-track`. Location is harness-owned — common choices
-   are the harness default under the repo or `~/code/.worktrees/<repo>/<slug>/`; pick one consistent
-   with the host and do not hard-code a single path in scripts. If the path or branch already
-   exists, stop and report rather than clobbering.
+### Agent root
 
-4. **Provision when the repo says so.** Read the target repo's `AGENTS.md` (and any
-   `.worktreeinclude` / `worktree:provision` / `worktree:init` docs). Run only the repo-documented
-   install/provision steps needed before `dev` (e.g. `npm ci`). Do not invent infra setup.
+- Before further file work, relocate workspace root to the new isolation. Cursor: `move_agent_to_root` with the worktree absolute path. Other harnesses: equivalent "open this folder as workspace" / cwd switch. A tree the session is not sitting in is not ready.
 
-5. **Move the agent into the worktree.** Relocate the session workspace root to the new worktree
-   path before any further file work (Cursor: `move_agent_to_root`; other harnesses: the equivalent
-   "open this folder as the workspace" / cwd switch). New terminals and edits must land in the
-   worktree, not the primary checkout.
+**Local UI (from worktree `AGENTS.md` → Local UI verification)**
 
-6. **Read Local UI verification.** From the worktree's `AGENTS.md` **Local UI verification**
-   section, take the documented dev command, local URL/port, and default route. If that section
-   says browser smoke is N/A (no user-facing UI), create the worktree + move root, skip server and
-   browser, and report `ready (no UI)` with the reason. Do not invent a framework-specific `dev`
-   command when the repo documents none and has no UI.
+- Take documented dev command, origin, default route. Do not invent a framework `dev` command.
+- If section says browser smoke **N/A** (no user-facing UI): skip server/browser; still require the Gauntlet quartet (goal/bar/charter/progress) + isolation + root move; status `ready (no UI)` with that reason.
+- When UI exists: serve from **this** feature tree. Reuse a healthy server only if it already serves this tree on the documented origin; never treat a primary-checkout server as sufficient; don't open a duplicate on a second port when one is healthy for this tree. Wait until the origin answers HTTP.
+- Open harness-native embedded browser (else harness-available browser) to documented local origin + route (`/` only if none documented). Confirm load. No auth unless user asked signed-in start; no production URLs/creds (`/verify-ui` owns credentials).
 
-7. **Serve from the worktree.** Check existing terminals first; reuse a healthy server only if it
-   is already serving **this worktree** on the documented origin. Otherwise start the documented
-   command with cwd = the worktree, wait until the local origin returns HTTP, and do not open a
-   duplicate server on a second port when one is already healthy for this tree.
+### Writes
 
-8. **Open the embedded browser.** Navigate the harness-native embedded browser (not an external
-   OS browser window unless the harness has no embedded one) to the documented local origin +
-   route. Confirm the page loaded; do not authenticate unless the user asked to start a signed-in
-   session — credentials stay in `/verify-ui` territory.
+- No tracked writes on `main` / primary checkout after a feature room was requested. Progress stub + charter note belong in the isolation.
 
-9. **Receipt.** Emit the output contract and stop. Leave the server running. Do not implement the
-   feature, do not commit, and do not `/ship`.
+## Boundary
+
+Prepare and stop. Charter binds later loop execution; running the first decomposition wave, builder/critic round, `/loop` until bar, feature implementation, commits, `/verify-ui`, or `/ship` is out of scope for this skill alone.
+
+## Receipt (plain text; claim status only when true)
+
+- **Goal** — outcome (not architecture list)
+- **Bar** — inspectable criteria, or explicit find-the-bar mandate
+- **Charter** — path to durable note (or inline summary of the four laws)
+- **Progress** — path/URL of live progress stub
+- **Repo** — absolute primary-checkout base used for worktree create
+- **Branch** — topic branch
+- **Worktree** — absolute isolation path
+- **Agent root** — confirms session root is the worktree
+- **Dev server** — command + origin, or `skipped (no UI)` + reason
+- **Browser** — opened local route, or `skipped (no UI)`
+- **Status** — `ready` | `ready (no UI)` | failure (what blocked; never dress partial as ready)
 
 ## Don't
 
-- Don't author on `main` or in the primary checkout when this skill was asked to start a feature.
-- Don't remove or reuse another task's dirty worktree.
-- Don't start implementing, refactoring, or smoke-testing beyond "server up + browser opened."
-- Don't use production URLs or production credentials.
-- Don't skip the agent-root move — a worktree the session is not sitting in is not a ready room.
+- Don't claim ready for scaffolding without the product gate.
+- Don't accept slogan bars; don't freeze architecture / fixed rounds as goal or session law.
+- Don't plan builder self-grading or critique of summaries.
+- Don't author on `main`/primary; don't clobber foreign rooms; don't skip root move.
+- Don't invent UI stacks on no-UI repos; don't reuse wrong-tree servers.
+- Don't implement, smoke beyond "server up + browser opened," commit, or ship under start.

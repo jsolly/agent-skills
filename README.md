@@ -52,8 +52,8 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `janitor` | Drain issues/PRs across repos |
 | `explain-diff-html` | Interactive HTML diff explanation |
 | `optimize-workspace` | Monthly workspace audit — drain memories into durable config |
-| `start-feature` | Ready room: worktree + local dev server + embedded browser |
-| `verify-ui` | Browser-smoke UI changes (desktop + mobile screenshots, console) |
+| `start-feature` | Gauntlet Loop–ready feature session (goal, bar, charter, progress) + isolation |
+| `verify-ui` | Fail-closed UI evidence receipt (route, dual viewports, render-only or interactions) |
 
 ## Review agents (`/ship` fleet)
 

@@ -75,7 +75,7 @@ Run scripts from this skill directory or pass explicit paths:
 - `scripts/ahrefs-issues.mts` — fetch Ahrefs issue JSON with `AHREFS_API_TOKEN`.
 - `scripts/gsc-inspect.mts` — inspect URL indexing status with a bearer token or service account.
 - `scripts/squirrel-baseline.sh` — run named Squirrel baseline audits.
-- `scripts/lighthouse-run.mts` — run Lighthouse N times against one URL (local or prod), median the four category scores, and emit failing audits sorted by fix priority. Needs Chrome installed; uses a `lighthouse` on PATH or falls back to `npx -y lighthouse`.
+- `scripts/lighthouse-run.mts` — run Lighthouse N times against one URL (local or prod), median the four category scores, and emit failing audits sorted by fix priority. Needs Chrome installed; requires `lighthouse` on PATH or `--lighthouse-bin` (no `npx` fallback).
 - `scripts/seo-triage.mts` — normalize evidence into sorted tiered findings.
 
 Each script supports `--help`. Scripts must write data to stdout and status/errors to stderr.

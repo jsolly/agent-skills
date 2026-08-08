@@ -23,8 +23,8 @@ Options:
   --lighthouse-bin P  Path to a lighthouse binary; overrides autodetect.
   --help              Show this help.
 
-Resolution: a "lighthouse" on PATH is used if present (respects a pinned global/local
-install); otherwise falls back to "npx -y lighthouse". Requires Google Chrome installed.
+Resolution: requires a "lighthouse" binary on PATH (or --lighthouse-bin). No npx
+fallback — missing CLI fails closed. Requires Google Chrome installed.
 
 Output: aggregated JSON to stdout; progress/diagnostics to stderr.`;
 
@@ -131,8 +131,9 @@ function resolveInvocation(override?: string): string[] {
     execFileSync("lighthouse", ["--version"], { stdio: "ignore" });
     return ["lighthouse"];
   } catch {
-    note("• no `lighthouse` on PATH — falling back to `npx -y lighthouse`");
-    return ["npx", "-y", "lighthouse"];
+    fail(
+      "✗ lighthouse not on PATH — install a local/pinned binary and ensure it is on PATH, or pass --lighthouse-bin; no npx fallback",
+    );
   }
 }
 
