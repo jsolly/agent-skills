@@ -17,7 +17,7 @@ Confirm or infer:
 - Repo root and framework.
 - Ahrefs project ID or project URL.
 - GSC property URL.
-- Available tools: browser session, Ahrefs UI/export, optional Ahrefs API/MCP, GSC API/CLI, Squirrel CLI, Lighthouse (Chrome installed + `lighthouse` on PATH or `npx`), deployment access.
+- Available tools: browser session, Ahrefs UI/export, optional Ahrefs API/MCP, GSC API/CLI, Squirrel CLI, Lighthouse (Chrome installed + `lighthouse` on PATH or `--lighthouse-bin`), deployment access.
 - The **local dev server** command and URL (for local Lighthouse runs) and the production URL.
 - Whether the user wants audit-only, fix-only, or audit-fix-verify.
 

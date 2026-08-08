@@ -94,7 +94,7 @@ scripts/lighthouse-run.mts http://localhost:4321/ --runs 3
 scripts/lighthouse-run.mts https://example.com/ --runs 5 --preset desktop --output-dir .seo-audit/lh
 ```
 
-It prefers a `lighthouse` binary on PATH (respecting a pinned global/local install) and otherwise falls back to `npx -y lighthouse`. **Chrome must be installed** — the CLI and Node API both drive a real local Chrome (headless here). The same command handles localhost and prod; you just pass the URL.
+It requires a `lighthouse` binary on PATH (or `--lighthouse-bin`) — missing CLI fails closed with no `npx` fallback. **Chrome must be installed** — the CLI and Node API both drive a real local Chrome (headless here). The same command handles localhost and prod; you just pass the URL.
 
 The **Lighthouse Chrome extension is not an automation path** — Chrome's own docs say "you should use Chrome DevTools rather than this Chrome Extension workflow. The DevTools workflow allows for testing local sites and authenticated pages, while the extension does not." The extension popup is browser chrome (not page DOM), so `claude-in-chrome` cannot drive it, and it can't reach `localhost`. Do not try to automate it.
 
