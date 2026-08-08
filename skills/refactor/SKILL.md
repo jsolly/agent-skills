@@ -5,7 +5,8 @@ description: 'TypeScript refactoring that provably preserves behavior. Use for "
 
 # Refactor
 
-> **Author in a worktree.** This skill edits repo files (atomic commits below) — work in a git worktree off `main`, never the primary checkout on the `main` branch (`rules/worktree-authoring.md`). Integrate with `/ship`.
+> **Integrate with `/ship`.** This skill edits repo files (atomic commits below). Don't write tracked
+> files on a `main` checkout (`block-edit-on-main`); isolation mechanism is harness-/repo-owned.
 
 A refactor can only fail two ways, and this skill exists to prevent both:
 
@@ -130,7 +131,8 @@ scope:           2 files changed — both in contract set
 
 ## House rules (what "maintainable" means here)
 
-Canonical in `rules/code-style.md` and `rules/typescript-strict.md` — consult them, don't re-derive them. The refactor-time operationalizations:
+Canonical in `rules/code-style.md` — consult it, don't re-derive it. Strictness comes from the
+repo's `tsconfig` (fleet baselines under `dotagents/tsconfig/`). The refactor-time operationalizations:
 
 - **Extractions have destinations:** types → the module's `types.ts`; magic values and `as const` maps → `constants.ts`. Not inline, not mixed.
 - **Moving a symbol = repointing every importer in the same commit.** Never leave a forwarding `export { x } from "./old"` shim "for compatibility" — no re-exports, ever.

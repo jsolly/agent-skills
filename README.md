@@ -77,9 +77,7 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 
 | Name | Description |
 | --- | --- |
-| `worktree-authoring` | Worktree-first authoring off main |
 | `code-style` | Fleet code style and deletion ethos |
-| `typescript-strict` | Strict TS baseline expectations |
 | `agent-cloud-access` | Human-gated prod ops and deploy paths |
 
 ## Source of truth

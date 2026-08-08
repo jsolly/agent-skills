@@ -7,7 +7,8 @@ description: Use when the user says `/seo`, including `/seo <website>`, or asks 
 
 Use this for technical site-quality work where the expected output is evidence-backed fixes, not a generic checklist. Scope is **technical SEO plus the three other Lighthouse categories** — performance, accessibility, best-practices — audited and iterated together with Ahrefs/GSC/Squirrel SEO evidence. Not content, keyword, or marketing strategy.
 
-> **Author in a worktree.** When this skill edits repo files (robots.txt, sitemaps, canonicals, config) — work in a git worktree off `main`, never the primary checkout on the `main` branch (`rules/worktree-authoring.md`). Integrate with `/ship`.
+> **Integrate with `/ship`.** When this skill edits repo files (robots.txt, sitemaps, canonicals,
+> config), don't write tracked files on a `main` checkout; isolation is harness-/repo-owned.
 
 ## Required first reads
 

@@ -17,8 +17,8 @@ agents/<name>.md           → ~/.cursor/agents/<name>.md
 rules/<name>.md            → ~/.cursor/agent-skills-package/rules/<name>.md   (cloud)
 ```
 
-When a skill says `rules/worktree-authoring.md`, resolve it against this package — on cloud, read
-from `~/.cursor/agent-skills-package/rules/` (see `.cursor/CLOUD.md`).
+When a skill cites `rules/<name>.md`, resolve it against this package — on cloud, read from
+`~/.cursor/agent-skills-package/rules/` (see `.cursor/CLOUD.md`).
 
 ## Ship profile
 

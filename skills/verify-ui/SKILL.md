@@ -41,7 +41,7 @@ node <path-to-this-skill>/scripts/smoke-ui.mts \
 
 Add `--start-command npm --start-arg run --start-arg dev` only when no healthy server exists. Start
 commands are executable + argument arrays, never shell strings. The fallback accepts loopback URLs
-only, waits for a `2xx` readiness response (no redirect follow), rejects navigations that leave the
+only, waits for readiness (`2xx`, or same-origin `3xx`), rejects navigations that leave the
 requested origin/path, captures both viewports under the system temp directory (or `--output-dir`),
 records console warnings/errors, and exits non-zero on page or console errors. Use the native
 browser for authentication, remote URLs, and complex interactions; the fallback is a baseline
