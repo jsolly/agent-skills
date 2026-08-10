@@ -10,9 +10,25 @@ when the owning route playbook does not resolve a recurring failure; it is not a
   `example-app` is owned by `example-project`; GitHub transfer redirects can hide a bad assumption
   until another command stops following it.
 - **Scan primary checkouts only.** A primary checkout has a `.git` directory. Linked worktrees have
-  a `.git` file and live under paths such as `~/code/.worktrees/`; scanning both duplicates items.
+  a `.git` file and live under paths such as `~/code/.worktrees/` or `~/.cursor/worktrees/`;
+  scanning both duplicates GitHub items. Local cleanup discovers those linked trees via
+  `git worktree list` from the primary — do not walk `.worktrees/` directories as extra repos.
 - **`gh issue list --json` already excludes PRs.** Do not build a second overlap filter that risks
   dropping real issues.
+
+## Local cleanup
+
+- **Fetch `--prune` before trusting `[gone]`.** Without a prune fetch, deleted remote heads still
+  look live and stale locals survive forever; with a stale remote-tracking cache, the inverse false
+  positive is rarer but still avoid acting on upstream state you haven't refreshed this pass.
+- **Open PR beats "looks abandoned".** A clean worktree on a branch with an open PR is in-flight —
+  leave it. Terminal (merged/closed) PR state is what unlocks delete, not directory mtime.
+- **No upstream ≠ gone.** Never-pushed topic branches and Dependabot worktrees created with
+  `--no-track` often have no upstream; they are stale only when a merged/closed PR head matches.
+- **`git worktree remove` without `--force`, or skip.** A locked/dirty refusal is a `KEPT` row, not
+  a reason to escalate. Same posture as `/ship` close: never sweep another session's dirty room.
+- **Delete the worktree before the branch.** Removing the branch first fails while a worktree still
+  has it checked out; reverse order leaves an orphaned directory with a broken `.git` file.
 
 ## Durable GitHub state
 

@@ -1,116 +1,99 @@
 ---
 name: optimize-workspace
-description: Use when the user says `/optimize-workspace` or `/memory-to-config`, or wants a monthly workspace audit — mine sessions, memories, and friction for encodeable prefs/procedures; promote into durable config; peel/merge dead duplicates. Report-first capital plan, then AskUserQuestion on every proposed change. NOT for writing new memories as a filing system, unattended `/loop` runs, or encoding a singleton incident.
+description: >-
+  Use when the user says `/optimize-workspace` or `/memory-to-config`, or wants
+  an exhaustive workspace optimization — inventory skills/rules/memories/agents/
+  brief, open a view-only HTML dashboard, wait for selection, then autonomously
+  run a Skills Upgrade Gauntlet on selected skills and a capital-plan
+  promote/peel/merge pass on selected memories/rules/agents/brief until each
+  item is green, retired, or applied. NOT for writing new memories as a filing
+  system, encoding a singleton incident, or shipping/merging PRs from this skill.
 ---
 
 # Optimize Workspace
 
 > **Integrate with `/ship`.** Repo edits wait for `/ship`. Machine edits and memory deletions apply live.
 
-Attended, ~monthly capital-plan pass. Success metric: **quieter agents** — prefs in standing config, less rediscovery, memory used as a debt marker to drain (not a filing system). **No unattended / loop mode.**
+**Outcome:** selected workspace assets are honestly improved or retired — skills via a blind Skills Upgrade Gauntlet; memories/rules/agents/brief via evidence-backed capital-plan apply — with a live dashboard and resumable run state. Success metric: **quieter agents** (prefs in standing config, skills that earn their tokens, memory as a debt marker to drain).
 
-## Four lanes → one approval walkthrough
+Method peer: [Gauntlet Loop](https://somethingbig.ai/gauntlet-loop) / [Skills Upgrade](https://somethingbig.ai/skills-upgrade). Creation-side peer: `/solly-create-skill`.
 
-| Lane | Job |
-| --- | --- |
-| Preferences + friction | Corrections/prefs + stuck loops → brief, rules, permissions, hooks |
-| Reinvented wheels | Duplicate procedures across skills/rules/memories/plans/sessions → merge/relabel |
-| Session autopsy | Worst/repeated sessions (all harnesses) as evidence |
-| Promote + peel | Encode missing durable config; evidence-backed delete/merge of dead/duplicate config |
+## Product gate
 
-## Mine these sources (skip missing paths; never skip a whole harness silently)
+Claim `done` only when all hold:
 
-1. `memory/*.md` + `MEMORY.md`
-2. `memory/WATCH.md` (soft-archive; create if missing)
-3. Degraded report: `bash reports/degraded-ai-performance-report.sh` (+ `EXAMPLES=1`)
-4. Claude `~/.claude/projects/**/*.jsonl`
-5. Cursor `~/.cursor/projects/*/agent-transcripts/*.jsonl`
-6. Codex `~/.codex/sessions/`, `~/.codex/history.jsonl`
-7. Config inventory: `skills/*/SKILL.md`, `rules/*.md`, `global-instructions/AGENTS.md`, `agents/*.md`, child-repo `AGENTS.md` under `~/code`, plan dirs
-8. In-memory FOLLOW-UP / pending / TODO / DEFERRED; buried config suggestions in prose
+1. Inventory covered every available scope (missing paths skipped loudly; whole harness never skipped silently).
+2. View-only dashboard written, opened, and linked in chat before any upgrade/apply.
+3. User selected the set in chat (or explicitly resumed a prior run) — never start from dashboard clicks.
+4. Every selected **skill** is green (decisive upgrade) or **Green — retire**, with held-out evidence after install.
+5. Every selected **capital** candidate is applied, blocked with reason, or deliberately skipped after selection — no silent drops.
+6. Immutable originals preserved; run state persisted so the pass can resume.
+7. Exact model IDs logged for every contestant/judge run; unavailable conditions labeled, never faked.
 
-Thin parsers ⇒ targeted reads still required — do not silently omit Cursor/Codex/friction.
+## Required progressive loading
 
-## Recurrence gate
+1. Before inventory or resume decisions, read `references/persistence.md`.
+2. Before writing/opening the dashboard, read `references/inventory-and-dashboard.md`.
+3. After selection, for each selected skill, read `references/skill-gauntlet.md` before mutating that skill.
+4. After selection, before applying capital candidates, read `references/capital-plan.md`.
 
-Propose new durable config only when: ≥2 sessions (any harness), or ≥2 repos, or clear repeat in the degraded report, or a memory that is already encodeable behavior (FOLLOW-UP / how-to-apply / repeating gotcha). **First-sighting singletons → soft-archive only** (`WATCH.md` + report appendix). No inventing rules/guards/skills for one-offs.
+Do not preload the skill-gauntlet or capital-plan refs until that lane has selected work.
 
-## Soft-archive (`memory/WATCH.md`)
+## Loop
 
-Waiting room, not permanent filing. First sight → watch row. Reappearance → graduate to candidate. Stale inert watches → offer RETIRE (still AskUserQuestion).
+1. **Resume check** — if an incomplete run exists under `~/.config/dotagents/optimize-workspace/`, offer resume vs new run (`references/persistence.md`).
+2. **Inventory** — skills, rules, agents, global brief, memories, session/friction sources, overlaps (`references/inventory-and-dashboard.md`).
+3. **Dashboard** — write `dashboard.html` + `state.json` in the run dir; `open` it; paste the `file://` link. View-only.
+4. **Select and wait** — present inventory clearly, recommend a default set, wait for the user's reply in chat. Do not begin upgrades until they respond.
+5. **Snapshot originals** — copy every selected skill (full dir) and every capital target that will be edited into `originals/` before mutation.
+6. **Autonomous lanes** — work until every selected item is resolved. Pause only for a genuine external blocker or an action that could affect live systems/data.
+   - **Skills** → `references/skill-gauntlet.md` (independent experiment per skill).
+   - **Memories / rules / agents / brief** → `references/capital-plan.md` (draft exact diffs, then apply the selected set without per-diff re-asks).
+7. **Install / apply** — write winning skill versions into the canonical skill dirs; apply capital edits; refresh installer links only if skills were added/removed/renamed.
+8. **Final sealed eval** — for each upgraded (non-retired) skill, fresh contestant + judge runs on the held-out set; update dashboard.
+9. **Receipt** — notify the user the run is complete; remind `/ship` per touched repo.
 
-## Candidate kinds (each needs its own approval)
+Keep the dashboard and `state.json` updated throughout. Never ask the user to direct experiments, approve revisions, interpret results, or decide what to try next after selection.
 
-| Kind | On approval |
-| --- | --- |
-| **PROMOTE** | Encode into config, then delete source memory |
-| **RETIRE** | Already captured / dead — delete memory (grep-proof first) |
-| **PEEL** | Unused *and* duplicate/better owner — delete/merge config |
-| **MERGE / RELABEL** | Consolidate overlapping skills/rules |
-| **PREFERENCE** | Repeated correction → `global-instructions/AGENTS.md` or a rule |
+## Two lanes
 
-**KEEP** is report-only (live external state / open trackers) — not a walkthrough apply; not a failure. Default peel = evidence-backed only; no radical thin unless the user sets that bias.
+| Lane | Assets | Resolution |
+| --- | --- | --- |
+| Skill Gauntlet | Selected `skills/<name>/` | Outcome contract → benchmark → blind eval → upgrade or **Green — retire** |
+| Capital plan | Memories, rules, agents, `global-instructions/AGENTS.md`, child-repo briefs | PROMOTE / RETIRE / PEEL / MERGE / PREFERENCE / KEEP — apply after selection |
 
-## Pass algorithm
+## Models
 
-1. Mine all lanes → reconcile WATCH → cluster by recurrence.
-2. Draft every candidate (target file + exact diff). Undrafted "consider a rule" is not a candidate. Verify "already in config" / "missing" against the live repo.
-3. Emit **tiered report** (I safety → II productivity → III preference/style; one-offs in appendix).
-4. **AskUserQuestion every candidate** — up to 4 questions per call, one decision each; recommendation first with `(Recommended)`; drafted diff in apply preview. Never infer blanket approval.
-5. Apply approved set. **PROMOTE delete only after the edit lands**; if edit fails, leave memory. RETIRE only after proof of capture/death.
-6. Reconcile `MEMORY.md` / `WATCH.md`. Summarize (contract below). Remind `/ship` per touched repo.
+Use real models available in the current harness. Verify and log the exact model for every contestant and judge. Never silently substitute, route two labeled conditions through the same underlying model while claiming they differ, or claim an unavailable model was tested. Skip unavailable conditions and label them on the dashboard.
 
-### Memory heuristics
+Standing skill principle: a skill should primarily contain what the model could not reasonably know on its own.
 
-- Rollout COMPLETE/SHIPPED/DONE → RETIRE (grep-proof).
-- Live FOLLOW-UP / encodeable pending → PROMOTE.
-- Recurring gotcha → PROMOTE.
-- First sight → WATCH.
-- Live external state / in-flight tracker → KEEP.
-- One-off with no reusable rule → WATCH (never manufacture a guard).
-- Superseded → RETIRE (name superseder).
+## Hard don'ts
 
-### AskUserQuestion shape
-
-header ≤12 chars; question names the change; options typically Apply as drafted (Recommended) / different target / Retire-skip / Keep — adapt for PEEL/MERGE; preview = exact diff.
-
-## Config landing zones
-
-**dotagents:** `rules/*.md`, `global-instructions/AGENTS.md`, `guards/block-*.sh`, `hooks/*.sh`, `permissions/agent.json`, `gate/gate-lib.sh`, `skills/*/SKILL.md`.
-
-**Child repos:** that repo's `AGENTS.md` / hooks / pins — never author `CLAUDE.md` (symlink). One repo → that repo; many → dotagents. Prefer child until a second repo needs it. Edit in that repo's worktree.
-
-Guards still bind (`block-claude-md-write`, `block-prod-db-migrations`, `block-stack-delete`, `block-edit-on-main`). Never push/merge from this skill.
-
-## Closing summary
-
-```text
-optimize-workspace — <N> memories, <S> sessions/sources, <M> report buckets
-
-APPLIED — repo (working tree; run /ship)
-  ▸ <name> → <target> …
-APPLIED — machine (live)
-  ▸ …
-DELETED — retired memories (grep-proof)
-  ▸ …
-WATCH — soft-archived first sightings
-  ▸ …
-KEPT — config can't encode
-  ▸ …
-PEELED / MERGED
-  ▸ …
-SKIPPED — declined
-  ▸ …
-
-Corpus: <N> → <N-deleted>. Watch list: <W>. Working tree: <f> files across <repos>.
-Next: /ship per repo with edits. Machine edits already live.
-```
-
-## Don't
-
+- Start the gauntlet/capital apply before the user selects (unless resuming an already-selected run).
 - Promote a singleton into durable config.
 - Delete memory before config capture (or after a failed edit).
-- Infer blanket / vibe approval.
-- Use soft-archive as permanent filing, or treat KEEP as failure.
-- Silently skip an entire harness or the friction lane.
-- Push/merge repo changes from this pass.
+- Manufacture a revised skill just to paint the dashboard green — retire instead.
+- Leak held-out tasks, eval packets, or verdicts to skill builders before final eval.
+- Write skill bodies into `~/.{cursor,claude,codex}/skills/` (symlinks only) or `~/.cursor/skills-cursor/`.
+- Author into `CLAUDE.md` (symlink); push/merge from this skill; invoke `/ship` unless the user asks after the pass.
+- Fake model IDs or skip a harness/friction source silently.
+
+## Receipt
+
+```text
+optimize-workspace — run <id> — <S> skills, <C> capital candidates
+
+SKILLS
+  ▸ <name> — Green (upgrade) | Green — retire | blocked (<reason>)
+CAPITAL — repo (working tree; run /ship)
+  ▸ …
+CAPITAL — machine / memory (live)
+  ▸ …
+WATCH / KEPT / BLOCKED
+  ▸ …
+
+Dashboard: file://…/dashboard.html
+Originals: ~/.config/dotagents/optimize-workspace/<id>/originals/
+Next: /ship per repo with edits. Machine edits already live.
+```

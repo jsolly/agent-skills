@@ -90,6 +90,11 @@ Pre-wired alternate postures (change the default above to adopt one):
     to it — don't gold-plate, refactor adjacent code, or invent requirements the issue didn't state.
     If the issue is ambiguous or needs a product/design call, that's a HOLD-with-comment **before**
     writing code — guessing at intent and merging it is the failure mode this invariant prevents.
+11. **Local cleanup is keep-guarded and local-only.** Remove a linked worktree or local branch only
+    when `local-cleanup.md`'s stale criteria match **and** no keep-guard fires (dirty, open PR,
+    protected/default branch, primary checkout, locked/in-use, unresolved head). Never
+    `git worktree remove --force`, never delete remote branches, never treat "no upstream" as
+    `[gone]`. A refused cleanup is a report row, not a HOLD and not a bypass invitation.
 
 ## Universal HOLD contract
 
