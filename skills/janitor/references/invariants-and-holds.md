@@ -93,8 +93,9 @@ Pre-wired alternate postures (change the default above to adopt one):
 11. **Local cleanup is keep-guarded and local-only.** Remove a linked worktree or local branch only
     when `local-cleanup.md`'s stale criteria match **and** no keep-guard fires (dirty, open PR,
     protected/default branch, primary checkout, locked/in-use, unresolved head). Never
-    `git worktree remove --force`, never delete remote branches, never treat "no upstream" as
-    `[gone]`. A refused cleanup is a report row, not a HOLD and not a bypass invitation.
+    `git worktree remove --force`, never delete remote branches, never treat "no upstream" alone as
+    `[gone]` (already-integrated via `rev-list --count origin/$DEFAULT..$BRANCH == 0` is a separate
+    stale signal). A refused cleanup is a report row, not a HOLD and not a bypass invitation.
 
 ## Universal HOLD contract
 

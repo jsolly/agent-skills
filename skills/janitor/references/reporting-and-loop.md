@@ -22,8 +22,9 @@ Read this file before dispatching concurrent deep work and before ending every p
 ## Reporting contract
 
 End each pass with a terse, scannable summary — this runs every 5 minutes, so no walls of text.
-**Every pass report ends with a schedule footer** (Schedule footer below) so the user can see last
-run, next run, cadence, and whether the loop is bounded — without asking.
+**Every pass report includes a Local outstanding block, then ends with a schedule footer**
+(Schedule footer below) so the user can see leftover locals, last run, next run, cadence, and
+whether the loop is bounded — without asking.
 
 ```text
 Janitor pass — <n> repos, <m> authorized items (<p> PRs, <i> issues)
@@ -39,38 +40,59 @@ Janitor pass — <n> repos, <m> authorized items (<p> PRs, <i> issues)
   HELD         my-org/checkboxes#93 (issue) "make it faster" — too vague to implement; asked which flow + target on the issue
   SKIPPED      my-org/<repo>#NN            author @thirdparty (not authorized)
   CLEANED      example-project/example-app   worktree ~/code/.worktrees/example-app-pr597 + branch dependabot/npm_and_yarn/typescript-7.0.2 (PR #597 merged)
+  CLEANED      my-org/agent-config            worktree ~/.cursor/worktrees/agent-config/z9qd + branch cursor/bb603bc2 (already on main)
   PRUNED       my-org/ExampleGeo             local branch feat/old-export (upstream gone)
-  KEPT         my-org/agent-config            ~/.cursor/worktrees/agent-config/abcd (dirty)
-Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 1 cleaned, 1 pruned, 1 kept, 0 errors.
+  PRUNED       my-org/agent-config            local branch cursor/61ac1ba9 (already on main)
+  KEPT         my-org/agent-config            ~/.cursor/worktrees/agent-config/90jv (dirty)
+Local outstanding:
+  WT      my-org/agent-config            ~/.cursor/worktrees/agent-config/90jv · feat/messy · dirty
+  WT      example-org/example-app  ~/code/.worktrees/example-app-pr597 · dependabot/npm_and_yarn/typescript-7.0.2 · open PR #597
+  BRANCH  my-org/my-org-website       chore/gh-actions-node24 · primary checkout · upstream gone
+Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 2 cleaned, 2 pruned, 1 kept, 3 outstanding, 0 errors.
 Schedule: last 2026-07-25 09:12:04 EDT · next 2026-07-25 09:17:04 EDT · every 5m · unbounded (until drain)
 ```
 
-Local-cleanup rows (`CLEANED` / `PRUNED` / `KEPT`) are optional when the arm found nothing to say;
-include them when something was removed or deliberately retained against an abandoned-looking
+Local-cleanup action rows (`CLEANED` / `PRUNED` / `KEPT`) are optional when the arm found nothing to
+say; include them when something was removed or deliberately retained against an abandoned-looking
 candidate. They never change drain math.
 
+**Local outstanding is required every pass** (including idle and drained reports) — the full
+post-cleanup inventory of leftover linked worktrees and non-default local branches across every
+`~/code` primary, per `local-cleanup.md` → Inventory outstanding locals. When there are none:
+
+```text
+Local outstanding: none
+```
+
+Otherwise one `WT` / `BRANCH` row per leftover (see that section for classification and reasons).
+Outstanding rows are visibility only — they never change drain math and never keep the loop alive.
+
 If nothing was actionable but work is still in flight (ARMED pending CI, deferred conflicts,
-IMPLEMENTED PRs pending CI, UNKNOWN mergeability), one line plus the schedule footer — the loop
-keeps ticking. Local cleanup may still have run; mention it only if it removed or kept something:
+IMPLEMENTED PRs pending CI, UNKNOWN mergeability), one line, then Local outstanding, then the
+schedule footer — the loop keeps ticking. Action rows (`CLEANED`/`PRUNED`/`KEPT`) stay optional:
 
 ```text
 Janitor: N authorized items, all armed/in-flight, nothing to do this pass.
+Local outstanding:
+  WT  example-org/example-app  ~/code/.worktrees/example-app-pr597 · dependabot/… · open PR #597
 Schedule: last 2026-07-25 09:12:04 EDT · next 2026-07-25 09:17:04 EDT · every 5m · unbounded (until drain)
 ```
 
 If the backlog is **drained** — zero authorized open items, or every remaining one is HELD for a
-human — one line, stop the loop (see Loop termination), and a schedule footer with no next run.
-Local cleanup having run (or cleaned something) does **not** keep the loop alive:
+human — one line, Local outstanding, stop the loop (see Loop termination), and a schedule footer
+with no next run. Local cleanup / outstanding inventory does **not** keep the loop alive:
 
 ```text
 Janitor: backlog drained — 0 actionable items (M held for human). Loop stopped.
+Local outstanding:
+  WT  example-org/example-app  ~/code/.worktrees/example-app-pr597 · dependabot/… · open PR #597
 Schedule: last 2026-07-25 09:12:04 EDT · next none (loop stopped) · was every 5m · stopped after drain
 ```
 
 ### Schedule footer
 
-Append exactly one `Schedule:` line after the summary (or after the single-line idle/drained
-report). Resolve times with the machine's local clock — run
+Append exactly one `Schedule:` line after Local outstanding (which itself follows the summary or
+the single-line idle/drained report). Resolve times with the machine's local clock — run
 `date '+%Y-%m-%d %H:%M:%S %Z'` at report time; never UTC-only and never omit the zone.
 
 | Field | How to fill it |
@@ -122,8 +144,9 @@ Do not let the loop idle forever on an empty backlog. At the end of each pass, d
   remains that the janitor can still act on: either zero authorized items are open, or every
   remaining one is terminal for the janitor (HELD for a human — a `JANITOR HOLD:` judgment call, a
   self PR needing review, or an issue too ambiguous to implement). Local stale worktrees/branches
-  are **not** backlog items — cleaning them does not prevent drain, and leftover `KEPT` dirties do
-  not keep the loop alive. When drained, end the loop the janitor armed instead of letting the next
+  are **not** backlog items — cleaning them does not prevent drain, leftover `KEPT` dirties do
+  not keep the loop alive, and the **Local outstanding** inventory is visibility only (never
+  in-flight). When drained, end the loop the janitor armed instead of letting the next
   tick fire: stop it via the `loop` skill's own stop mechanism (don't schedule/reschedule the next
   iteration). Close with the drained report line so the user sees why the loop ended (HELD items are
   theirs to resolve — no further pass will change them).
@@ -131,7 +154,7 @@ Do not let the loop idle forever on an empty backlog. At the end of each pass, d
   ARMED auto-merge waiting on CI, PREPPED majors pending CI, an IMPLEMENTED issue's PR pending CI,
   checks pending, BEHIND/DIRTY PRs still converging, UNKNOWN mergeability, or a PR merged this pass
   (its stacked siblings, or the issue it closed, may shift state). Local-cleanup `KEPT`/`CLEANED`
-  rows alone never count as in-flight.
+  rows and Local outstanding alone never count as in-flight.
 
 The `once` and launchd variants are unaffected — each is one independent pass that exits either
 way; a drained headless pass simply reports and exits, and stopping that cadence means unloading
