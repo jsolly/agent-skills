@@ -49,7 +49,7 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `find-edgecase-slop` | Find spiked edge-case complexity (supersedes former `/refactor` cleanup scans) |
 | `ship` | Review, gate, integrate to main (PR) |
 | `seo` | Technical SEO + Lighthouse audit |
-| `janitor` | Drain issues/PRs across repos |
+| `janitor` | Drain issues/PRs across repos; prune stale local worktrees/branches |
 | `optimize-workspace` | Monthly workspace audit — drain memories into durable config |
 | `start-feature` | Gauntlet Loop–ready feature session (goal, bar, charter, progress) + isolation |
 | `verify-ui` | Fail-closed UI evidence receipt (route, dual viewports, render-only or interactions) |

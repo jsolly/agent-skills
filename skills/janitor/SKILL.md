@@ -1,15 +1,18 @@
 ---
 name: janitor
-description: Use when the user says `/janitor`, or wants to drain the open **issues and PRs** you or Dependabot created across all `~/code` repos. One idempotent pass — scan every child repo, keep only self- and Dependabot-authored items (never third-party), and for each either **merge the PR** or **implement the issue**. PRs: get them green (update-branch / rebase, conflict + lockfile resolution, flaky retry) and — for dependency bumps — read the changelog and adapt the repo to breaking changes before merging (majors get the full migration-guide upgrade), and for your own PRs fix the failing checks from the PR's stated intent and merge when green. Issues: implement the requested change in a worktree, `/ship` it (review fleet + CI) as a PR closing the issue, and merge when green + review-clean. Escalate only what it can't safely adapt or implement. A bare `/janitor` arms its own 5-minute loop (`/janitor once` for a single pass) and stops that loop itself once the backlog is drained. NOT for reviewing, implementing, or merging third-party / fork contributions.
+description: Use when the user says `/janitor`, or wants to drain the open **issues and PRs** you or Dependabot created across all `~/code` repos, and clean **stale local worktrees/branches** in those checkouts. One idempotent pass — scan every child repo, keep only self- and Dependabot-authored items (never third-party), and for each either **merge the PR** or **implement the issue**; then prune local linked worktrees and local branches whose remote PR is merged/closed or whose upstream is gone (never dirty trees, open-PR heads, or protected branches). PRs: get them green (update-branch / rebase, conflict + lockfile resolution, flaky retry) and — for dependency bumps — read the changelog and adapt the repo to breaking changes before merging (majors get the full migration-guide upgrade), and for your own PRs fix the failing checks from the PR's stated intent and merge when green. Issues: implement the requested change in a worktree, `/ship` it (review fleet + CI) as a PR closing the issue, and merge when green + review-clean. Escalate only what it can't safely adapt or implement. A bare `/janitor` arms its own 5-minute loop (`/janitor once` for a single pass) and stops that loop itself once the backlog is drained. NOT for reviewing, implementing, or merging third-party / fork contributions.
 ---
 
 # Janitor
 
-A background maintainer for authorized open issues and PRs across every git repo under `~/code`.
-One invocation is one idempotent pass: **PR → make correct, green, and merge; issue → implement,
-`/ship`, and merge when green + review-clean.** GitHub labels, comments, linked PRs, and checks are
-the durable state between passes. This skill is narrow standing authorization bounded by the author,
-green, review-fleet, and HOLD gates.
+A background maintainer for authorized open issues and PRs across every git repo under `~/code`,
+plus local worktree/branch hygiene in those same checkouts. One invocation is one idempotent pass:
+**PR → make correct, green, and merge; issue → implement, `/ship`, and merge when green +
+review-clean; local → remove stale linked worktrees and local branches.** GitHub labels, comments,
+linked PRs, and checks are the durable state between passes for the GitHub arms; local cleanup is
+re-derived each pass from `git worktree list`, branch upstreams, and PR head state. This skill is
+narrow standing authorization bounded by the author, green, review-fleet, HOLD, and local
+keep-guard gates.
 
 ## Invocation modes
 
@@ -30,11 +33,14 @@ green, review-fleet, and HOLD gates.
 2. For every authorized PR, read `references/pr-drain.md`.
 3. For every Dependabot PR, also read `references/dependabot-upgrades.md`.
 4. For every authorized issue, read `references/issue-triage.md`.
-5. Before concurrency decisions or ending the pass, read `references/reporting-and-loop.md`.
-6. Read `references/gotchas.md` only when a pass hits a recurring GitHub-state, mergeability,
-   lockfile, or lifecycle failure that the route playbook does not resolve.
+5. Once per pass (after the GitHub arms, or immediately when they found nothing), read
+   `references/local-cleanup.md`.
+6. Before concurrency decisions or ending the pass, read `references/reporting-and-loop.md`.
+7. Read `references/gotchas.md` only when a pass hits a recurring GitHub-state, mergeability,
+   lockfile, local-cleanup, or lifecycle failure that the route playbook does not resolve.
 
-Do not preload route-specific playbooks for item types the pass did not find.
+Do not preload route-specific playbooks for item types the pass did not find. Always load
+`local-cleanup.md` once — it runs even on an empty GitHub backlog.
 
 ## One-pass orchestration
 
@@ -52,10 +58,16 @@ Do not preload route-specific playbooks for item types the pass did not find.
    claim with `janitor-implementing`, implement in a worktree, run the repo gate, and invoke `/ship`
    with `Closes #<n>`. A `/ship` stop is a HOLD, never a bypass invitation.
 6. Parallelize independent deep work in separate worktrees; never overlap whole janitor passes.
-7. Emit the terse pass report (including the schedule footer: last/next local times, cadence,
-   bound) and make the loop stop/continue decision. Do not babysit post-merge **production
-   deploys** in this pass (fleet alerting owns those) — this is not a ban on watching PR CI; green
-   required checks before merge still apply.
+7. After the GitHub arms settle, run local hygiene through `references/local-cleanup.md` on the
+   same primary-checkout set: fetch `--prune`, remove clean linked worktrees and delete local
+   branches whose head PR is merged/closed or whose upstream is `[gone]`; skip dirty trees,
+   open-PR heads, protected branches, and the primary checkout. Never `--force` a worktree remove;
+   never delete remotes.
+8. Emit the terse pass report (including local `CLEANED`/`PRUNED`/`KEPT` rows and the schedule
+   footer: last/next local times, cadence, bound) and make the loop stop/continue decision. Local
+   cleanup alone does not keep the loop alive. Do not babysit post-merge **production deploys** in
+   this pass (fleet alerting owns those) — this is not a ban on watching PR CI; green required
+   checks before merge still apply.
 
 ## Hard stops
 
@@ -65,6 +77,9 @@ Do not preload route-specific playbooks for item types the pass did not find.
 - Never author issue work outside `/ship`, and never merge it without clean review + green CI.
 - Never push to `main`, force-push, use `--admin`/`--no-verify`, or edit in a primary checkout.
 - Never touch a draft or WIP/DO-NOT-MERGE self PR.
+- Never `git worktree remove --force`, delete a dirty worktree, delete a branch with an open PR,
+  delete `main`/`master`/the default branch, remove a primary checkout, or delete a **remote**
+  branch as part of local cleanup.
 - When correctness needs judgment or cannot be validated, follow the universal `JANITOR HOLD:`
   contract and disarm auto-merge. Later passes may maintain held PRs but never land them.
 
@@ -74,6 +89,8 @@ Do not preload route-specific playbooks for item types the pass did not find.
 - `references/pr-drain.md` — discovery, classification, self PRs, merge states/mechanics, deploy stance.
 - `references/dependabot-upgrades.md` — changelog review, majors, migration tools, prep persistence.
 - `references/issue-triage.md` — idempotency, claim, worktree implementation, `/ship`, escalation.
+- `references/local-cleanup.md` — stale linked worktrees + local branches under `~/code` primaries.
 - `references/reporting-and-loop.md` — bounding, output contract (incl. schedule footer), loop
   arming/termination, wiring.
-- `references/gotchas.md` — recurring fleet, GitHub-state, mergeability, and lifecycle failures.
+- `references/gotchas.md` — recurring fleet, GitHub-state, mergeability, local-cleanup, and
+  lifecycle failures.

@@ -38,13 +38,20 @@ Janitor pass — <n> repos, <m> authorized items (<p> PRs, <i> issues)
   HELD         my-org/ExampleGeo#390         vite 7→8 — migration guide drops the `X` API we use; correct replacement needs your call (partial adaptation pushed, JANITOR HOLD comment)
   HELD         my-org/checkboxes#93 (issue) "make it faster" — too vague to implement; asked which flow + target on the issue
   SKIPPED      my-org/<repo>#NN            author @thirdparty (not authorized)
-Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 0 errors.
+  CLEANED      example-project/example-app   worktree ~/code/.worktrees/example-app-pr597 + branch dependabot/npm_and_yarn/typescript-7.0.2 (PR #597 merged)
+  PRUNED       my-org/ExampleGeo             local branch feat/old-export (upstream gone)
+  KEPT         my-org/agent-config            ~/.cursor/worktrees/agent-config/abcd (dirty)
+Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 1 cleaned, 1 pruned, 1 kept, 0 errors.
 Schedule: last 2026-07-25 09:12:04 EDT · next 2026-07-25 09:17:04 EDT · every 5m · unbounded (until drain)
 ```
 
+Local-cleanup rows (`CLEANED` / `PRUNED` / `KEPT`) are optional when the arm found nothing to say;
+include them when something was removed or deliberately retained against an abandoned-looking
+candidate. They never change drain math.
+
 If nothing was actionable but work is still in flight (ARMED pending CI, deferred conflicts,
 IMPLEMENTED PRs pending CI, UNKNOWN mergeability), one line plus the schedule footer — the loop
-keeps ticking:
+keeps ticking. Local cleanup may still have run; mention it only if it removed or kept something:
 
 ```text
 Janitor: N authorized items, all armed/in-flight, nothing to do this pass.
@@ -52,7 +59,8 @@ Schedule: last 2026-07-25 09:12:04 EDT · next 2026-07-25 09:17:04 EDT · every 
 ```
 
 If the backlog is **drained** — zero authorized open items, or every remaining one is HELD for a
-human — one line, stop the loop (see Loop termination), and a schedule footer with no next run:
+human — one line, stop the loop (see Loop termination), and a schedule footer with no next run.
+Local cleanup having run (or cleaned something) does **not** keep the loop alive:
 
 ```text
 Janitor: backlog drained — 0 actionable items (M held for human). Loop stopped.
@@ -100,10 +108,10 @@ Each iteration is one pass; the cadence is armed automatically:
 - **One-shot:** `/janitor once` — run a single pass, arm nothing. Still emit the schedule footer
   (`next none (once)` · `once` · `1 pass`).
 - **True background (unattended):** wrap a headless run in a launchd agent, e.g. a
-  `~/Library/LaunchAgents/com.my-org.janitor.plist` firing
+  `~/Library/LaunchAgents/com.example.janitor.plist` firing
   `claude -p "/janitor once"` on a 300s `StartInterval` (use `once` so each firing doesn't try
   to arm an in-session loop). Not created by this skill — set it up deliberately if you want the
-  cadence to survive without an open session. (If you already run the old `com.my-org.pr-janitor`
+  cadence to survive without an open session. (If you already run the old `com.example.pr-janitor`
   plist, unload + rename it — the label and the `-p` command both change.)
 
 ## Loop termination — stop when drained
@@ -113,14 +121,17 @@ Do not let the loop idle forever on an empty backlog. At the end of each pass, d
 - **Drained ⇒ end the loop.** The backlog is drained when no authorized open **item (PR or issue)**
   remains that the janitor can still act on: either zero authorized items are open, or every
   remaining one is terminal for the janitor (HELD for a human — a `JANITOR HOLD:` judgment call, a
-  self PR needing review, or an issue too ambiguous to implement). When drained, end the loop the
-  janitor armed instead of letting the next tick fire: stop it via the `loop` skill's own stop
-  mechanism (don't schedule/reschedule the next iteration). Close with the drained report line so the
-  user sees why the loop ended (HELD items are theirs to resolve — no further pass will change them).
+  self PR needing review, or an issue too ambiguous to implement). Local stale worktrees/branches
+  are **not** backlog items — cleaning them does not prevent drain, and leftover `KEPT` dirties do
+  not keep the loop alive. When drained, end the loop the janitor armed instead of letting the next
+  tick fire: stop it via the `loop` skill's own stop mechanism (don't schedule/reschedule the next
+  iteration). Close with the drained report line so the user sees why the loop ended (HELD items are
+  theirs to resolve — no further pass will change them).
 - **Still in flight ⇒ keep looping.** Anything the next pass could advance keeps the loop alive:
   ARMED auto-merge waiting on CI, PREPPED majors pending CI, an IMPLEMENTED issue's PR pending CI,
   checks pending, BEHIND/DIRTY PRs still converging, UNKNOWN mergeability, or a PR merged this pass
-  (its stacked siblings, or the issue it closed, may shift state).
+  (its stacked siblings, or the issue it closed, may shift state). Local-cleanup `KEPT`/`CLEANED`
+  rows alone never count as in-flight.
 
 The `once` and launchd variants are unaffected — each is one independent pass that exits either
 way; a drained headless pass simply reports and exits, and stopping that cadence means unloading
@@ -128,6 +139,7 @@ the plist.
 
 ## Wiring
 
-On a laptop host, link this skill into discovery paths with the host skill installer, then run the
-doctor script. On Cursor Cloud, `.cursor/install-cloud-skills.sh` installs the public package.
-Skills are auto-discovered from `skills/*/`.
+This is a canonical dotagents skill. After creating/renaming it, link it into `~/`:
+`bash ~/code/agent-config/setup/install-local-agent-runtime.sh` (per-skill symlink;
+`doctor-agents.sh` then verifies the link). No manifest or GUARDS array to update — skills are
+auto-discovered from `skills/*/`.
