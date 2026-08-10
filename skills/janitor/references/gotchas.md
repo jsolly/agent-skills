@@ -23,8 +23,12 @@ when the owning route playbook does not resolve a recurring failure; it is not a
   positive is rarer but still avoid acting on upstream state you haven't refreshed this pass.
 - **Open PR beats "looks abandoned".** A clean worktree on a branch with an open PR is in-flight —
   leave it. Terminal (merged/closed) PR state is what unlocks delete, not directory mtime.
-- **No upstream ≠ gone.** Never-pushed topic branches and Dependabot worktrees created with
-  `--no-track` often have no upstream; they are stale only when a merged/closed PR head matches.
+- **No upstream ≠ gone, but tip-on-default is stale.** Never-pushed topic branches and Dependabot
+  worktrees created with `--no-track` often have no upstream; "no upstream" alone is not stale.
+  They become deletable when a merged/closed PR head matches, upstream is `[gone]`, **or**
+  `git rev-list --count origin/$DEFAULT..$BRANCH` is `0` (already integrated — the Cursor
+  `cursor/<id>` leftover case). Branches that still have unique commits stay and appear in Local
+  outstanding as `no upstream`.
 - **`git worktree remove` without `--force`, or skip.** A locked/dirty refusal is a `KEPT` row, not
   a reason to escalate. Same posture as `/ship` close: never sweep another session's dirty room.
 - **Delete the worktree before the branch.** Removing the branch first fails while a worktree still
