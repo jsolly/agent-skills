@@ -1,6 +1,6 @@
 # Fleet guards + git discipline
 
-Git safety during `/ship` is **orchestrator discipline**. There is no hard `block-git` for `--no-verify` / force-push — do not assume hooks will stop you.
+Git safety during `/ship` is **orchestrator discipline**. There is no hard `block-git` for `--no-verify`, force-push to `main`/`master`, or blanket `git add -A`/`.` — do not assume hooks will stop you. The global brief labels those as preference/`/ship` discipline and reserves "enforced" wording for hook-backed rules.
 
 ## Ship markers (asymmetric — required)
 
