@@ -51,6 +51,7 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `janitor` | Drain issues/PRs across repos; prune stale local worktrees/branches |
 | `optimize-workspace` | Monthly workspace audit — drain memories into durable config |
 | `gauntlet-loop` | Self-start Gauntlet Loop on substantial plans / large implementations |
+| `investigate` | Evidence-driven diagnosis; finishes with CreatePlan (fix or evidence-acquisition) |
 | `verify-ui` | Fail-closed UI evidence receipt (route, dual viewports, render-only or interactions) |
 
 ## Review agents (`/ship` fleet)
