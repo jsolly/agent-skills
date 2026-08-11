@@ -111,26 +111,24 @@ discipline applies with the PR description as the spec instead of a changelog �
 (algorithm step 3). HOLD only when you can't confidently make it correct (per invariant 3, the
 changelog HOLD rule, and the step-3 HOLD escape).
 
-## Merge mechanics
+## Merge mechanics (authorized Dependabot / already-open self PRs)
 
-- **Prefer arming GitHub auto-merge** so CI is the final gate before the merge (and thus before the
-  deploy): `gh pr merge <n> -R "$SLUG" --squash --auto --delete-branch`. If the PR already has
-  `autoMergeRequest != null`, it's armed — skip.
-- **Fallback for plan-gated repos:** GitHub auto-merge is unavailable on private Free repos (the
-  dotagents-private memory) — `--auto` errors. When it does, and the PR is **CLEAN with all required
-  checks green**, merge immediately: `gh pr merge <n> -R "$SLUG" --squash --delete-branch`. If
-  it's not yet green, leave it — the next pass handles it once CI finishes.
-- **Squash** is the fleet default (matches the repos' `auto-merge.yml`); if a repo disallows squash,
-  fall back to its allowed method rather than failing.
-- **Delete the branch on merge** (fleet default: `delete_branch_on_merge`).
+Janitor may arm/merge **authorized** Dependabot and already-open self PRs after the green gate —
+distinct from `/ship`, which never arms Dependabot (see `skills/ship/references/integrate.md`).
+Do not restate ship CI-babysit / `--no-verify` hard-stops here.
+
+- **Prefer arming GitHub auto-merge** so CI is the final gate:
+  `gh pr merge <n> -R "$SLUG" --squash --auto --delete-branch`. If
+  `autoMergeRequest != null`, already armed — skip.
+- **Plan-gated fallback:** when `--auto` fails (private Free / plan-gated — same class of
+  failure ship documents in `integrate.md`), and the PR is **CLEAN with all required checks
+  green**, merge immediately: `gh pr merge <n> -R "$SLUG" --squash --delete-branch`. If not yet
+  green, leave it for the next pass.
+- **Squash** is the fleet default; if a repo disallows squash, use its allowed method.
+- **Delete the branch on merge** when the repo enables `delete_branch_on_merge`.
 
 ## Deploy awareness — fire and forget
 
-Merging to `main` **auto-deploys to prod** on most of these repos (Vercel git-integration on
-ExampleGeo/checkboxes/my-org-website; GitHub Actions / `deploy:code` on the SAM repos; github-handoff
-on example-app). That's expected and acceptable **because the green gate means CI passed** — the
-same protection any merge relies on. An **implemented-issue** PR deploys on merge exactly like any
-other — its extra safety is that `/ship`'s review fleet ran before the merge (invariant 9). After
-merging, **do not** babysit or fix the **post-merge production deploy** in this pass. A failed
-deploy is a separate concern surfaced by the fleet's own alerting, not this loop. (Watching PR CI
-to green before merge is still required.)
+Merging to `main` often auto-deploys. That is acceptable because the green gate already passed.
+**Do not** babysit or repair **post-merge production deploys** (fleet alerting owns those).
+Required PR checks must still be green before merge.

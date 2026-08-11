@@ -31,19 +31,29 @@ a product/design decision, depends on work not yet done, or is too large to land
 PR. Guessing at intent and merging it is exactly what invariant 10 forbids — a precise "what did you
 mean by X?" comment is the thoughtful outcome, not a failure. A large-but-clear issue that decomposes
 into independent PRs: implement the first self-contained slice, comment the decomposition on the
-issue, leave it open.
+issue, leave it open. **Decomposition does not skip the claim** — the parent issue still gets
+`janitor-implementing` before any slice code lands.
 
-## Claim before authoring
+## Claim before authoring (every newly started issue)
 
-Apply the `janitor-implementing` label *first*:
+Apply the `janitor-implementing` label *first*, **before any code, worktree, or branch for that
+issue** — including the first slice of a multi-slice decomposition:
 
 ```bash
 gh label create janitor-implementing -R "$SLUG" --force
 gh issue edit <n> -R "$SLUG" --add-label janitor-implementing
 ```
 
-The claim covers the whole author → build → ship window. Labeling only after `/ship` (once a PR
-already exists) leaves the exact window where two passes could each start a worktree for the issue.
+Rules:
+
+- **Fresh implement** (full issue or first slice) → claim, then author. Never author then label.
+- **HOLD-before-code** (ambiguous) → no claim, no code; only the durable question comment.
+- **Already claimed / in-flight** → skip (idempotency section); do not re-claim or second-author.
+- Labeling only after `/ship` (once a PR exists) leaves the exact window where two passes could
+  each start a worktree for the issue.
+
+In the pass report, every `IMPLEMENTED` / `IMPL(held)` row for work this pass started must be
+traceable to a before-code claim (state it in the action note or a claim column).
 
 ## Implement → ship → merge
 
@@ -56,20 +66,16 @@ For an issue that has passed triage and been claimed:
    anything. For a bug report, reproduce first, then fix + add the regression test.
 3. **Run the repo's own gate** (`npm run check:ts`, lint, affected tests — read the
    repo's `AGENTS.md`/`package.json`) before trusting CI. Don't ship what you haven't run.
-4. **`/ship` it.** Invoke the `ship` skill — it runs the review-agent fleet,
-   **fixes verified findings or stops without pushing** (never opens a PR carrying an unaddressed
-   high-confidence finding), runs the gate, opens the PR, babysits CI (watch + fix red), and merges
-   on `pr-auto-merge` repos. Put **`Closes #<n>`** in the PR body so the merge closes the issue.
-   (The issue is already labelled `janitor-implementing` from the claim step.) There is no
-   CI-watch handoff — if `/ship` is still running when this pass continues, wait for its
-   outcome; if a prior `/ship` left a green open PR (e.g. interrupted), finish via the PR arm
-   mergeStateStatus playbook.
-5. **The merge gate is the review fleet + green, together** (invariant 9). Because `/ship`
-   fixes-or-stops, the HOLD trigger is **`/ship` stopping without a PR** (a finding it couldn't safely
-   fix within its fix-loop): leave no dangling branch, comment the blocking finding on the issue,
-   report `IMPLEMENTED (held)`. When `/ship` *does* open the PR on a `pr-auto-merge` repo, expect it
-   to land the merge itself. That PR, by construction, carries no unaddressed high-confidence
-   finding. Never route around a `/ship` stop to "finish" the issue.
+4. **`/ship` it.** Invoke the `ship` skill (sole owner of PR create + review fleet + CI babysit +
+   merge on that path — cite `skills/ship/references/integrate.md` and `fleet-guards.md`; do not
+   restate those hard-stops here). Put **`Closes #<n>`** in the PR body so the merge closes the
+   issue. (Already labelled `janitor-implementing` from the claim step.) Wait for `/ship`'s
+   outcome in this pass; if a prior `/ship` left a green open PR (e.g. interrupted), finish via
+   the PR arm `mergeStateStatus` playbook.
+5. **The merge gate is the review fleet + green, together** (invariant 9). HOLD trigger is
+   **`/ship` stopping without a PR** (finding it couldn't safely fix): leave no dangling branch,
+   comment the blocking finding on the issue, report `IMPLEMENTED (held)`. Never route around a
+   `/ship` stop to "finish" the issue.
 
 ## Escalation contract
 

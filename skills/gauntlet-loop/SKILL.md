@@ -5,8 +5,9 @@ description: >-
   feature, new subsystem, ambitious refactor) — do not wait for a slash.
   Also `/gauntlet-loop` or `$gauntlet-loop`. Goal, inspectable bar, decompose,
   builder ≠ critic, keep looping. NOT for small fixes, typos, single-file bugs,
-  docs-only, `/ship`, `/verify-ui`, or when solly-create-skill /
-  optimize-workspace / setup-*-machine already owns a Gauntlet charter.
+  docs-only, `/ship`, `/verify-ui`, creating a new fleet skill
+  (`solly-create-skill`), or exhaustive workspace inventory/upgrade
+  (`optimize-workspace`) — those peers own their own Gauntlet charters.
 ---
 
 # Gauntlet Loop

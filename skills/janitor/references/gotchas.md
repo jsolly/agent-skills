@@ -55,13 +55,16 @@ when the owning route playbook does not resolve a recurring failure; it is not a
 - **Regenerate lockfiles; never hand-merge them.** Stacked Dependabot PRs naturally churn lockfiles.
   Merge the base in from a worktree, regenerate with the repo's package manager, run its checks, and
   push only to the PR head.
-- **Plan-gated private repos cannot arm auto-merge.** A failed `--auto` is expected there. Merge only
-  when CLEAN and required checks are green; otherwise leave it for the next pass.
+- **Plan-gated `--auto` failure is expected** on private Free repos (same class ship documents in
+  `skills/ship/references/integrate.md`). For janitor-owned Dependabot/self PR merges: merge only
+  when CLEAN + required checks green; otherwise leave for the next pass.
 - **You cannot approve your own PR.** A self-authored PR blocked on required review is a HOLD, even
   when its checks are green. Dependabot PRs may be approved only within the authorized envelope.
 - **Known flakes get one rerun, not a policy rewrite.** Docker Hub rate limits, registration-approval
   E2E flakes, and GoTrue 502s are rerunnable. A genuine required-check failure must be fixed from the
   changelog or PR intent.
+- **Gate-integrity flags** (`--no-verify`, force-merge, etc.): cite
+  `skills/ship/references/fleet-guards.md` — do not invent a second copy here.
 
 ## Pass lifecycle
 

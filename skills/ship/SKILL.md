@@ -17,11 +17,7 @@ Sole fleet path: review → local gate → integrate → babysit CI → merge/la
 | `{INTEGRATION_MODEL}` | **`pr-auto-merge`** default · `direct-push` only if declared or emergency bypass |
 | `{CI_OWNER}` | **`local`** = full local gate before push · `github-handoff` = cheap local subset (still babysit remote CI) |
 
-Details: `references/profiles.md`, `deploy-verify.md`, `integrate.md`.
-
-## Caps (exhaustion → hard-stop terminal)
-
-Review-fix · local push-gate-fix · PR CI fix-red — each **3**. Then `Not merged` / `Not pushed` / `Stopped — not pushed`. Never weaken gates/tests to force green.
+Caps (review-fix · local push-gate-fix · PR CI fix-red): **3** each → hard-stop (`Not merged` / `Not pushed` / `Stopped — not pushed`). Never weaken gates/tests. Details: `references/profiles.md`, `integrate.md`, `deploy-verify.md`.
 
 ## Marker asymmetry (forms not interchangeable)
 
@@ -34,26 +30,15 @@ Also never: `--no-verify`; force-push / `--force-with-lease`; `reset --hard`; bl
 
 ## Loop
 
-1. Sync with `origin/main`; classify profile / integration / CI owner.
-2. Semantic review (or docs/config allowlist skip **only** if every path qualifies). Light → Critical/Important structural/security/infra ⇒ escalate full before push. Fix verified findings in-run or stop-and-ask.
+1. Sync with `origin/main`; classify profile / integration / CI owner (`references/profiles.md`).
+2. Review via Cursor Task subagents (`references/review-roster.md`) — or docs/config allowlist skip **only** if every path qualifies. Light → Critical/Important structural/security/infra ⇒ escalate **full** before push. All lens findings follow `references/output-contract.md`. Fix verified findings in-run or stop-and-ask.
 3. Stage **named paths**; commit = original intent.
 4. Re-run documented local gate before push (`local` full / `github-handoff` cheap — do not invent fuller battery).
 5. Integrate (`references/integrate.md`): marked push → ship-owned PR → arm auto-merge when available → babysit → fix-red within cap → merge when green (manual squash if plan-gated).
 6. Post-land prove (`references/deploy-verify.md`). HTTP: `x-release-id` ≥ merge SHA (ancestor), not READY/200 alone. `gate-only` / n/a = say so.
 7. Close (`references/close.md`). Clean **this** linked worktree when preconditions hold.
 
-## Terminal lead lines
-
-| Lead | When |
-| --- | --- |
-| **`PR merged to main`** | PR path; CI green; merged; deploy/verify OK or explicit n/a |
-| **`Shipped to main`** | Direct-push / break-glass only — never PR path |
-| **`Merged/Pushed — deploy/verify failed`** | On `main`, runtime proof failed |
-| **`Not merged`** / **`Not pushed`** / **`Stopped — not pushed`** | Cap / unresolved Critical-Important / stop-and-ask |
-
-Success receipt fields: ship profile, review depth/disposition, integration model, CI owner, deploy/verify, CI, worktree.
-
 ## References
 
-- `references/profiles.md` · `integrate.md` · `deploy-verify.md` · `fleet-guards.md` · `close.md`
+- `references/profiles.md` · `review-roster.md` · `output-contract.md` · `integrate.md` · `deploy-verify.md` · `fleet-guards.md` · `close.md`
 - `scripts/verify-x-release-id.sh` — HTTP release-id ≥ merge SHA helper

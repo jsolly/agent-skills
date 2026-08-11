@@ -64,8 +64,12 @@ post-cleanup inventory of leftover linked worktrees and non-default local branch
 Local outstanding: none
 ```
 
-Otherwise one `WT` / `BRANCH` row per leftover (see that section for classification and reasons).
-Outstanding rows are visibility only — they never change drain math and never keep the loop alive.
+Otherwise **enumerate every leftover** as one `WT` / `BRANCH` row with its keep-guard or
+non-stale reason (`dirty`, `open PR #<n>`, `locked`, `detached`, `no upstream`,
+`primary checkout`, …). Do **not** summarize ("lists remaining leftovers", "several KEPT",
+"inventory as usual") — the drained report must still render the complete de-duplicated list
+so a human can see why each survivor stayed. Outstanding rows are visibility only — they never
+change drain math and never keep the loop alive.
 
 If nothing was actionable but work is still in flight (ARMED pending CI, deferred conflicts,
 IMPLEMENTED PRs pending CI, UNKNOWN mergeability), one line, then Local outstanding, then the

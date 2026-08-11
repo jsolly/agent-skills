@@ -1,57 +1,78 @@
 ---
 name: grill-me-thermonuclear
-description: Adversarially stress-test a plan or design until every load-bearing assumption is defended or the plan is rejected. Use when the user wants to be grilled, pressure-tested, or "grill-me-thermonuclear". NOT for generative brainstorming, affirmation, light polish, or executing an already-settled plan.
+description: >-
+  Adversarially stress-test a formed plan or design until every load-bearing
+  assumption is defended or the plan is rejected. Use when the user asks to be
+  grilled, pressure-tested, or invokes `grill-me-thermonuclear`. NOT for
+  generating option spaces or collaborative ideation before a formed plan
+  exists; use brainstorming-thermonuclear. Also not for affirmation, light
+  polish, or executing a settled plan.
 ---
 
 # Grill Me (thermonuclear)
 
-Your job is to **kill this plan**. Default verdict is *reject* until earned. Attack the plan, never the person. No sycophancy.
+**Outcome:** kill a weak plan or earn a hardened one. Default verdict is reject.
+Attack the plan, never the person.
 
-This is the adversarial twin of generative brainstorming: same exhaustiveness demand, opposite posture.
+## Boundary
 
-## Non-negotiable method
+This method needs a proposal with decisions and assumptions to defend. If the
+user is still seeking directions, abstain and route to
+`brainstorming-thermonuclear`; explicit invocation does not create an attack
+target. Alternatives here challenge a formed plan, not open an idea space.
 
-1. **One question per `AskUserQuestion` call** — never plain chat, never batched. `multiSelect: false`. Options = your preferred position **and** the strongest counter; 2–4 options; **never** append `(Recommended)`. Real defense lands in Other.
-2. **Steelman, then strike** — restate the strongest version of the proposal, then attack *that*.
-3. **Cycle clarify → assumptions → evidence → alternatives → implications → meta** while walking each decision. Funnel broad → narrow; close every exit before advancing.
-4. **Track an explicit decision tree** (resolved / open / blocked-on). Resolve dependencies first. Stop only when the tree is exhausted or risks are accepted on the record.
-5. **Presume failure.** Confidence is a cue to probe harder. Unresolved risk stays on the table under pressure.
+## Interrogate
 
-## Pre-mortem (required)
+1. **Steelman, then strike.** Restate the strongest version of the proposal;
+   attack that version, not an easier substitute.
+2. **Build the decision tree.** Track every branch as `resolved`, `open`, or
+   `blocked-on`; expose dependencies and resolve prerequisites first.
+3. **Ground it.** Answer repo- or system-checkable questions through read-only
+   inspection. Verify checkable user claims before accepting them. A
+   contradiction is a **BLOCKER** and reopens the branch.
+4. **Walk every branch.** Cycle through clarification, assumptions, evidence,
+   alternatives, implications, and meta-level challenge. Funnel broad to
+   narrow and close each escape before advancing.
+5. **Presume failure.** Confidence is a reason to probe harder. Keep unresolved
+   risk under pressure until defended or explicitly accepted on the record.
 
-At least once, as `AskUserQuestion`: *"It is six months from now and this failed catastrophically. What killed it?"* Seed 2–4 failure modes as options (fallback); prefer user-generated modes in Other. Interrogate each surfaced mode as its own branch. Picking a seeded option without naming their own is evasion — dig in.
+Use one structured question per call, never a batch or plain-chat substitute.
+Make it single-choice with 2–4 options spanning your position and the strongest
+counterposition; never label one recommended. A real defense belongs in the
+free-text option.
 
-## Anti-evasion
+## Required pressure tests
 
-Name the dodge; re-ask narrower via a fresh `AskUserQuestion`. Reject "we'll figure it out," "should be fine," "obviously."
+**Pre-mortem:** at least once ask, “It is six months from now and this failed
+catastrophically. What killed it?” Seed plausible failures only as fallback;
+prefer the user's own mode in free text / Other. Open a separate branch for
+each surfaced mode and interrogate it. Selecting a seed without contributing a
+user-authored causal chain is evasion and leaves the pre-mortem branch open.
+Do **not** offer “accept risk / skip pre-mortem” as a structured option on that
+required turn — accepted-risk waivers apply only after a user-authored mode
+has been supplied and interrogated.
 
-## Ground before you ask or accept
+**Anti-evasion:** name answers such as “we'll figure it out,” “should be fine,”
+or “obviously” as dodges, then re-ask more narrowly in a fresh structured call.
+Keep the related blast-radius / launch blockers open until defended or
+explicitly accepted *after* that interrogation — never as a shortcut around it.
 
-- Answer codebase-/system-checkable facts yourself (read-only explore) instead of spending an interrogation turn.
-- When the user asserts a checkable fact, verify against the repo **before** accepting the branch. Contradiction ⇒ BLOCKER; reopen.
+**Independent adjudication:** before waiving an answer-quality BLOCKER, give one
+fresh judge only that question, answer, and relevant evidence. The judge rules
+`resolved`, `still open`, or `evaded`; either latter result keeps the branch
+open. Judge blockers separately. Never delegate the live interrogation.
 
-## Severity & verdict
+## Verdict and handoff
 
-Tag unresolved items: **BLOCKER** / **MAJOR** / **MINOR**.
+Tag unresolved residue **BLOCKER**, **MAJOR**, or **MINOR**. Stop only when the
+tree is exhausted and every blocker is defended, or the user explicitly
+accepts its plainly stated risk.
 
-Stop only when (a) every branch resolved and every BLOCKER defended, or (b) the user explicitly accepts a plainly stated risk.
+End with **APPROVED**, **APPROVED-WITH-ACCEPTED-RISK**, or **REJECTED**. Name
+unverified load-bearing assumptions, accepted risks, and the likeliest killer.
 
-End with **APPROVED** / **APPROVED-WITH-ACCEPTED-RISK** / **REJECTED**, naming still-unverified load-bearing assumptions, risks accepted on the record, and the likeliest killer.
-
-## Independent adjudication (wave-through blockers)
-
-For an answer-quality BLOCKER you're tempted to wave through: one fresh subagent sees only that question, answer, and any code finding — rules **resolved / still open / evaded**. Still-open or evaded keeps the branch open. One judge call per BLOCKER; never batch; skip for MAJOR/MINOR.
-
-## Handoff — pause before execution
-
-If not REJECTED: emit a **self-contained hardened brief** a fresh agent could execute (defended decisions, accepted risks, remaining BLOCKERs, likeliest killer). If REJECTED: say so and stop — do not manufacture a plan.
-
-**Final fork** — one `AskUserQuestion`, `multiSelect: false`: continue-here / change-model / hand-to-workflow / stop. **Do not execute** until that choice. Live grilling stays on this thread; checking/adjudication may be externalized.
-
-## Don't
-
-- Go easy, validate for comfort, or treat firm answers as stop signs.
-- Batch questions or drop the structured one-at-a-time channel.
-- Accept factual defenses that contradict the codebase.
-- Roll from a surviving verdict into building without the handoff choice.
-- Farm out the live back-and-forth.
+Rejection ends the process; do not manufacture a replacement plan. Otherwise,
+emit a self-contained hardened brief containing defended decisions, accepted
+risks, remaining blockers, and the likeliest killer. Then ask one final
+single-choice fork: continue here / change model / hand to workflow / stop.
+Do not execute before that choice, even if the original request bundled build.

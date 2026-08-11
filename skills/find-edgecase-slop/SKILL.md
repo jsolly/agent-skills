@@ -5,19 +5,21 @@ description: >-
   spiked edge-case complexity, edge-case slop, one-off special cases, or places
   where complexity was spiked for a rare path — also the former `/refactor`
   cleanup-scan niche for "this file is a mess of special cases." Scans the git
-  repo at CWD, switches into plan mode if needed, and turns every finding into
-  its own todo (exhaustive). NOT for auto-fixing those hits, a general
-  behavior-preserving restructure / DRY extract census, or unrelated bug hunting
-  — report + plan todos only unless the user later asks to clean up.
+  repo at CWD, switches into plan mode if needed, and finishes by creating a
+  plan whose todos are one exhaustive laundry-list item per finding. NOT for
+  auto-fixing those hits, a general behavior-preserving restructure / DRY
+  extract census, unrelated bug hunting, or hard-deleting a feature/flag/
+  subsystem (use remove-feature) — report + plan todos only unless the user
+  later asks to clean up.
 ---
 
 # Find Edge-Case Slop
 
-Read-only plan: locate rare-path / hard-coded spikes in the **CWD git repo**, report evidence, materialize one pending todo per hit. No edits/PRs unless the user later asks to clean up.
+Read-only plan: locate rare-path / hard-coded spikes in the **CWD git repo**, report evidence, then call CreatePlan with one structured todo per hit. No edits/PRs unless the user later asks to clean up.
 
 ## First action: plan posture
 
-If not already in plan/read-only mode, switch into it (Cursor: `SwitchMode` → `plan`). Stay there through scan + todos. Leave only if the user later asks to implement.
+If not already in plan/read-only mode, switch into it (Cursor: `SwitchMode` → `plan`). Stay there through scan + CreatePlan. Leave only if the user later asks to implement.
 
 ## Scope
 
@@ -38,5 +40,9 @@ Smells: customer/ID/locale/date special-case ladders; magic allow/deny maps for 
 1. Enter/stay plan mode.
 2. Confirm git root; scan with evidence (`path` ideally `file:line` + brief why).
 3. Report findings briefly.
-4. **Immediately** create the full todo list via the harness todo tool (`TodoWrite` / equivalent) — mandatory: one standalone pending todo per finding; exhaustive; no bucket todos. Nothing found → one sentence, empty todos.
-5. Pause for user review.
+4. **Immediately** finish with `CreatePlan` — mandatory; do **not** use `TodoWrite` (or equivalent) as the finish artifact. Constraints:
+   - Title/overview summarize the scan (repo + finding count).
+   - Plan body: short evidence list (`path` ideally `file:line` + why); no implementation steps.
+   - `todos`: one actionable pending item per finding; exhaustive; no bucket todos.
+   - Nothing found → one-sentence plan body; omit `todos` (or pass an empty list).
+5. Pause for user review/confirm of that plan (CreatePlan confirm UI). Leave plan mode only if they later ask to implement.

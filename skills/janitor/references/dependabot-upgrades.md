@@ -22,6 +22,9 @@ whether the repo needs to change to stay correct, then make exactly those change
    "what the upgrade requires" is wider — see Major upgrades below.)
 4. **Validate locally before trusting CI.** Run the repo's own checks (`npm run check:ts`, lint, the
    affected tests) in the worktree. CI is the gate, but don't push adaptations you haven't run.
+   **Stacked bumps:** when several dependency PRs will coexist on `main`, green-per-PR does not prove
+   green-together — validate the combined post-merge state (all bumps in one worktree/venv) before
+   treating the stack as done, especially before a prod deploy.
 5. **When to HOLD instead of adapt:** the changelog describes a breaking change whose correct
    resolution needs a product/judgment call; the new behavior changes output/semantics in a way only
    a human should sign off on; or you cannot verify your adaptation is right. Report the specific
@@ -66,18 +69,14 @@ rides the Dependabot PR branch (no superseding PRs); if you can't push there, HO
    the janitor's to keep green.
 4. **Mark it, arm it, merge it.** Persist the prep on GitHub so later passes don't redo it:
    `gh label create janitor-prepped -R "$SLUG" --force` (idempotent), then
-   `gh pr edit <n> -R "$SLUG" --add-label janitor-prepped`. Then arm auto-merge
-   (`pr-drain.md` → Merge mechanics) so CI is the final gate — or merge immediately if checks are
-   already green. Don't sit waiting on PR CI: on plan-gated repos where `--auto` errors, report
-   `PREPPED (CI pending)` and let the next pass merge once green. In the pass report, summarize what
-   the migration changed. If the correct adaptation needs a product/judgment call, or you can't
-   validate it (e.g. a visual overhaul with no test coverage), stop at a partial adaptation + HOLD
-   with the specific open question — same escalation contract as changelog step 5. **Still label
-   it** (the prep work is real state), leave a PR comment prefixed `JANITOR HOLD:` stating the open
-   question — that comment is what keeps later passes reporting HELD instead of merging — and make
-   sure auto-merge is **disarmed**: never arm a held PR, and if a hold is placed after arming (e.g.
-   red-check handling escalates on a later pass), run
-   `gh pr merge <n> -R "$SLUG" --disable-auto` first — the comment advises the janitor, not GitHub.
+   `gh pr edit <n> -R "$SLUG" --add-label janitor-prepped`. Then arm/merge via
+   `pr-drain.md` → Merge mechanics (janitor may arm authorized Dependabot — unlike `/ship`).
+   Don't sit waiting on PR CI: when plan-gated `--auto` fails, report `PREPPED (CI pending)` and
+   let the next pass merge once green. In the pass report, summarize what the migration changed.
+   If the correct adaptation needs a product/judgment call, or you can't validate it, stop at a
+   partial adaptation + HOLD with the specific open question — same escalation as changelog
+   step 5. **Still label it**, leave a `JANITOR HOLD:` comment, and **disarm auto-merge**
+   (`gh pr merge <n> -R "$SLUG" --disable-auto`) — the comment advises the janitor, not GitHub.
 
 Cost note: one major prep is a real unit of work (research + codemod + gate run). When several
 majors are pending, run their preps in **parallel subagents** rather than serially or deferred —

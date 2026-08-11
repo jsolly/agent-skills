@@ -27,7 +27,7 @@ npx skills add jsolly/agent-skills
 Single skill:
 
 ```bash
-npx skills add jsolly/agent-skills --skill drawio
+npx skills add jsolly/agent-skills --skill ship
 ```
 
 ## Cursor Cloud (fleet repos)
@@ -42,11 +42,10 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | --- | --- |
 | `brainstorming-thermonuclear` | Expansive divergent exploration |
 | `grill-me-thermonuclear` | Adversarial plan interrogation |
-| `drawio` | Native `.drawio` XML diagrams |
 | `fyi` | Session handoff snippet |
 | `research` | Deep-research prompt for external tools |
-| `remove-feature` | Remove feature/flag/subsystem fully |
-| `find-edgecase-slop` | Find spiked edge-case complexity (supersedes former `/refactor` cleanup scans) |
+| `remove-feature` | Hard-delete a feature; planning finishes with CreatePlan laundry-list todos |
+| `find-edgecase-slop` | Find spiked edge-case complexity; finishes with CreatePlan laundry-list todos |
 | `ship` | Review, gate, integrate to main (PR) |
 | `seo` | Technical SEO + Lighthouse audit |
 | `janitor` | Drain issues/PRs across repos; prune stale local worktrees/branches |
