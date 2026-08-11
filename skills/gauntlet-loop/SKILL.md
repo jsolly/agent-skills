@@ -6,8 +6,9 @@ description: >-
   Also `/gauntlet-loop` or `$gauntlet-loop`. Goal, inspectable bar, decompose,
   builder ≠ critic, keep looping. NOT for small fixes, typos, single-file bugs,
   docs-only, `/ship`, `/verify-ui`, creating a new fleet skill
-  (`solly-create-skill`), or exhaustive workspace inventory/upgrade
-  (`optimize-workspace`) — those peers own their own Gauntlet charters.
+  (`solly-create-skill`), problem diagnosis to a fix plan (`investigate`),
+  or exhaustive workspace inventory/upgrade (`optimize-workspace`) — those
+  peers own their own Gauntlet charters.
 ---
 
 # Gauntlet Loop
@@ -32,7 +33,7 @@ Isolation (topic branch, worktree, harness default) is harness-/repo-owned — l
 
 - Typo/lint, single-file bugfix with clear repro, docs-only, routine commit or `/ship` babysit
 - Follow-up inside an already-chartered gauntlet wave
-- Another skill already owns the turn **and** declares its own Gauntlet charter — defer to `solly-create-skill`, `optimize-workspace`, `setup-personal-machine`, or `setup-work-machine` (do not nest a second general loop)
+- Another skill already owns the turn **and** declares its own Gauntlet charter — defer to `solly-create-skill`, `investigate`, `optimize-workspace`, `setup-personal-machine`, or `setup-work-machine` (do not nest a second general loop)
 
 If unsure whether the change is large: one focused ask, then fire or abstain.
 
