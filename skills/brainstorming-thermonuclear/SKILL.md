@@ -1,6 +1,6 @@
 ---
 name: brainstorming-thermonuclear
-description: Expansively explore an idea, problem, or design until the option space is saturated, then synthesize with conditional routes and a handoff brief. Generative and collaborative (not adversarial). Use when the user wants to brainstorm, open options before committing, find directions they haven't considered, "brainstorm with me", or `/brainstorming-thermonuclear`. NOT for executing a chosen direction, adversarial plan-killing, or a short single answer.
+description: Expansively explore an idea, problem, or design until the option space is saturated, then synthesize with conditional routes and a handoff brief. Generative and collaborative (not adversarial). Use when the user wants to brainstorm, open options before committing, find directions they haven't considered, "brainstorm with me", or `/brainstorming-thermonuclear`. NOT for executing a chosen direction, adversarial plan-killing of an already-formed plan (use grill-me-thermonuclear), or a short single answer.
 ---
 
 # Brainstorming (thermonuclear)

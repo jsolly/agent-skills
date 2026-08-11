@@ -1,6 +1,8 @@
 # SEO issue triage
 
-Classify by user impact and ownership, not by the crawler's category label.
+Classify by user impact and ownership, not by the crawler's category label. Every finding that
+appears in a report needs **severity, owner, and a root-cause hypothesis** — do not lump several
+code-shaped defects into one bullet.
 
 ## Tiers
 
@@ -97,6 +99,7 @@ Apply these before proposing code changes:
 
 For each issue, be able to say:
 
-> This is `[tier]` because `[evidence]`. The owner is `[code/config/infrastructure/content/third-party]`. The next action is `[fix/document/ask/wait]`.
+> This is `[tier]` because `[evidence]`. The owner is `[code/config/infrastructure/content/third-party]`. The next action is `[fix/document/ask/wait]`. Root cause: `[hypothesis]`.
 
-If that sentence is not clear, gather more evidence before editing.
+If that sentence is not clear, gather more evidence before editing. In the report, keep findings
+separated when they have different owners or hypotheses — completeness beats compression.

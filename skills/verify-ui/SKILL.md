@@ -6,7 +6,8 @@ description: >-
   before declaring UI work done. Produces a fail-closed evidence receipt
   (affected route, dual viewports, interactions or honest `render-only`,
   console status). NOT for full E2E suites, performance / Core Web Vitals
-  audits, or server-only changes with no user-facing render path.
+  audits, full technical SEO/Lighthouse site audits (use seo), or server-only
+  changes with no user-facing render path.
 ---
 
 # Verify UI

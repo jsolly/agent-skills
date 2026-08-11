@@ -35,61 +35,6 @@ You will receive: a diff and a list of changed files.
 
 When reporting a finding, redact the middle of the matched value. Show the prefix (first 4–6 chars to indicate provider/type) and trailing dots. Never echo the full secret in the finding output — the orchestrator's transcript may be logged.
 
-## Critical Rules
+## Output contract
 
-DO:
-
-- Categorize by actual severity — not everything is Critical.
-- Be specific (file:line, not vague references).
-- Explain why each finding matters in concrete terms.
-- Commit to a verdict.
-- Redact secrets in your output.
-
-DON'T:
-
-- Echo the full secret value.
-- Mark style nitpicks as Critical or Important.
-- Flag findings outside your declared scope (other agents cover those).
-- Hedge ("you might consider…") — state the issue and the fix directly.
-- Return findings without a file:line reference.
-
-## Output format
-
-<!-- Output contract canon: ../skills/ship/references/output-contract.md -->
-
-Only flag issues that would cause real problems. Minor wording improvements, stylistic preferences, premature-abstraction quibbles, and "this could be slightly clearer" are not findings.
-
-Group findings by severity. Use these labels exactly:
-
-### Critical (must fix before push)
-
-[Bugs, security holes, data loss risks, breaking changes, guideline violations with material impact]
-
-### Important (should fix before push)
-
-[Real issues that hurt correctness, maintainability, or operability — fixed in the same /ship run]
-
-### Minor (nice to have)
-
-[Bounded cleanups and small quality improvements the orchestrator will eagerly fix before shipping]
-
-For each finding:
-
-- **File:line** — location
-- **What** — one-line summary (e.g., "AWS access key in src/config.ts")
-- **Why it matters** — the leak vector and what an attacker can do with it
-- **Fix** — rotate, move to env var, add to `.gitignore` (specific actions)
-
-Include the redacted prefix (e.g., `AKIA1234…`) in **Why it matters** so the user can identify the leak without seeing the full secret.
-
-Report at most 10 findings across all severities. If more, keep top 10 by severity and append `<N> additional lower-priority findings omitted.`
-
-End with a verdict line:
-
-**Ready to ship: Yes / With fixes / No**
-**Reasoning:** <one sentence>
-
-If you find nothing in your scope, return only:
-
-**Ready to ship: Yes**
-**Reasoning:** No secrets detected in the diff.
+Follow `../skills/ship/references/output-contract.md` (severity labels, finding shape, cap 10, verdict lines, DO/DON'T). Keep this agent's Scope / Out of scope above as the only lens-specific contract.

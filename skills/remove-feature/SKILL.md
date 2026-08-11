@@ -1,6 +1,14 @@
 ---
 name: remove-feature
-description: 'Use when the user says `/remove-feature`, or wants to fully remove/rip out/delete/kill a feature, flag, endpoint, or subsystem — hard delete with no compat layer. Plan-mode scope + full removal manifest + todos, then delete only after an execute choice. NOT for soft-disable, leaving a flag off, deprecating with a shim, or bugfixes — refuse those and offer soft-disable outside this skill vs true-removal reconfirm.'
+description: >-
+  Use when the user says `/remove-feature`, or wants to fully remove/rip out/
+  delete/kill a feature, flag, endpoint, or subsystem — hard delete with no
+  compat layer. Plan-mode scope + full removal manifest, then finishes planning
+  by creating a plan whose todos are one exhaustive laundry-list item per
+  DELETE / HUMAN-GATED / VERIFY REPLACEMENT item; delete only after an execute
+  choice. NOT for soft-disable, leaving a flag off, deprecating with a shim, or
+  bugfixes — refuse those and offer soft-disable outside this skill vs
+  true-removal reconfirm.
 ---
 
 # Remove Feature
@@ -13,7 +21,7 @@ North star: feature **gone**, survivors don't reference it, survivors still work
 
 ## Plan mode through handoff
 
-Phases 1–2, filled manifest, todos, and handoff are **read-only**. Enter plan mode first; leave only when the user chooses an execute path.
+Phases 1–2, filled manifest, CreatePlan, and handoff are **read-only**. Enter plan mode first; leave only when the user chooses an execute path.
 
 ## Phase 1 — Scope (confirm before archaeology)
 
@@ -52,11 +60,16 @@ HUMAN-GATED (propose exact commands; do not execute):
 
 Red baseline ⇒ stop. HUMAN-GATED: remove from templates/migrations in the diff; propose exact apply commands; never run destructive prod applies yourself.
 
-## Todos → handoff → execute
+## CreatePlan → handoff → execute
 
-One executable todo per concrete DELETE / HUMAN-GATED / VERIFY REPLACEMENT item. Leaf-before-root. No KEEP todos.
+After the filled manifest: **immediately** finish planning with `CreatePlan` — mandatory; do **not** use `TodoWrite` (or equivalent) as the finish artifact. Constraints:
 
-Emit filled manifest. **Final fork** (`AskUserQuestion`, single select): continue-here / change-model / hand-to-workflow / stop. **Do not Execute until answered.**
+- Title/overview name the feature and summarize DELETE / HUMAN-GATED / VERIFY counts.
+- Plan body: the filled REMOVAL MANIFEST (verbatim structure above); no deletion yet.
+- `todos`: one actionable pending item per concrete DELETE / HUMAN-GATED / VERIFY REPLACEMENT item; exhaustive; leaf-before-root; no bucket todos; no KEEP todos.
+- Nothing to delete after scope (refuse / empty) → one-sentence plan body; omit `todos` (or pass an empty list).
+
+Pause for user review/confirm of that plan (CreatePlan confirm UI). **Final fork** (`AskUserQuestion`, single select): continue-here / change-model / hand-to-workflow / stop. **Do not Execute until answered.**
 
 Leave plan mode only then. Atomic commits; oracle green between each; collapse flag branches to surviving path; re-run orphan tools; `git diff --stat` must stay inside the manifest.
 
@@ -80,5 +93,5 @@ Independent review for surviving refs/collateral/shims. Ship code via `/ship`. *
 - Soft-disable / flag-off / shim under this skill (wrong activation)
 - Grep-and-delete without scope confirmation; delete KEEP/shared symbols
 - Run destructive prod migrations or stack teardowns yourself
-- Skip plan mode, full todos, or the handoff pause
+- Skip plan mode, CreatePlan laundry-list todos, or the handoff pause
 - Declare done while human-gated remainder is unstated

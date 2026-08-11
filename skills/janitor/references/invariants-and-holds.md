@@ -69,11 +69,13 @@ Pre-wired alternate postures (change the default above to adopt one):
    fix a failure by masking it. If you can't confidently bring the repo into compliance with the new
    version, **HOLD** and report — don't merge an adaptation you can't validate.
 4. **Never weaken the gate to force green.** Don't disable, skip, `continue-on-error`, or loosen a
-   failing check; don't pin/downgrade around the problem; never `--no-verify` / `--admin` /
-   force-merge. Green must mean the code genuinely passes under the new dependency. Editing app code
+   failing check; don't pin/downgrade around the problem. `--no-verify` / `--admin` / force-merge /
+   force-push / `reset --hard` hard-stops: cite `skills/ship/references/fleet-guards.md` (do not
+   restate). Green must mean the code genuinely passes under the new dependency. Editing app code
    to comply with the upgrade (invariant 3) is not weakening the gate; suppressing the check is.
-5. **Push only to the PR's head branch, never to `main`.** No `git push origin HEAD:main`, no
-   force-push to `main`, no `git reset --hard` on a shared branch.
+5. **Push only to the PR's head branch, never to `main`.** No `git push origin HEAD:main`.
+   Force-push / `reset --hard` on shared branches: cite
+   `skills/ship/references/fleet-guards.md`.
 6. **Drafts are untouchable.** Skip `isDraft == true`.
 7. **Respect the shell guards.** `block-prod-db-migrations`, `block-stack-delete`, etc. still fire;
    don't route around them.

@@ -12,69 +12,19 @@ You will receive: a diff, a list of changed test files, and project guidelines.
 
 ## Scope
 
-- **Scenario framing**: Are tests framed around real user journeys or system events, not abstract operations?
-- **Realistic data**: Do tests use plausible values, real names, realistic inputs — not `foo`, `bar`, `test123`?
-- **Coverage gaps**: Are there obvious scenarios missing? Think about edge cases, error paths, boundary conditions.
-- **Integration over isolation**: Are tests hitting real dependencies where possible, or over-mocking?
-- **Assertions**: Are tests asserting on behavior (DB state, response payloads, status codes) rather than mock call counts?
-- **Test independence**: Can tests run in any order without affecting each other?
+Canon: `rules/testing.md` (scenario framing, realistic data, integration-over-isolation, behavior assertions, failability).
+
+Agent-only checks on the diff:
+
+- Coverage gaps vs the changed behavior (edge/error/boundary scenarios missing)
+- Over-mocking paid/external seams where the repo already has real fixtures
+- Order independence / shared mutable fixture smell in changed tests
 
 ## Out of scope
 
 - Code coverage percentages — focus on scenario coverage
 - Test file organization or naming conventions (unless guidelines specify)
 
-## Critical Rules
+## Output contract
 
-DO:
-
-- Categorize by actual severity — not everything is Critical.
-- Be specific (file:line, not vague references).
-- Explain why each finding matters in concrete terms.
-- Commit to a verdict.
-
-DON'T:
-
-- Mark style nitpicks as Critical or Important.
-- Flag findings outside your declared scope (other agents cover those).
-- Hedge ("you might consider…") — state the issue and the fix directly.
-- Return findings without a file:line reference.
-
-## Output format
-
-<!-- Output contract canon: ../skills/ship/references/output-contract.md -->
-
-Only flag issues that would cause real problems. Minor wording improvements, stylistic preferences, premature-abstraction quibbles, and "this could be slightly clearer" are not findings.
-
-Group findings by severity. Use these labels exactly:
-
-### Critical (must fix before push)
-
-[Bugs, security holes, data loss risks, breaking changes, guideline violations with material impact]
-
-### Important (should fix before push)
-
-[Real issues that hurt correctness, maintainability, or operability — fixed in the same /ship run]
-
-### Minor (nice to have)
-
-[Bounded cleanups and small quality improvements the orchestrator will eagerly fix before shipping]
-
-For each finding:
-
-- **File:line** — location
-- **What** — one-line summary
-- **Why it matters** — concrete consequence
-- **Fix** — specific remediation
-
-Report at most 10 findings across all severities. If more, keep top 10 by severity and append `<N> additional lower-priority findings omitted.`
-
-End with a verdict line:
-
-**Ready to ship: Yes / With fixes / No**
-**Reasoning:** <one sentence>
-
-If you find nothing in your scope, return only:
-
-**Ready to ship: Yes**
-**Reasoning:** No files in test scope.
+Follow `../skills/ship/references/output-contract.md` (severity labels, finding shape, cap 10, verdict lines, DO/DON'T). Keep this agent's Scope / Out of scope above as the only lens-specific contract.

@@ -86,12 +86,12 @@ From each primary checkout:
 6. If a fleet parent dir is now empty (`~/code/.worktrees/<repo>/`, or a harness parent that this
    repo exclusively owned and is empty), `rmdir` the empty directory only — never `rm -rf` a tree
    that still has entries.
-7. **Inventory outstanding locals (required every pass).** After the mutations above, list every
-   leftover linked worktree and non-default local branch across the same primary-checkout set — not
-   only the ones this pass touched. This is visibility for leftovers the keep-guards correctly
-   refused (dirty / open PR / locked) and for never-pushed branches that still have unique commits.
-   Emit via the report contract in `reporting-and-loop.md` → Local outstanding. Classification
-   rules:
+7. **Inventory outstanding locals (required every pass).** After the mutations above, **enumerate
+   every** leftover linked worktree and non-default local branch across the same primary-checkout
+   set — not only the ones this pass touched, and never as a prose summary. This is visibility for
+   leftovers the keep-guards correctly refused (dirty / open PR / locked) and for never-pushed
+   branches that still have unique commits. Emit via the report contract in
+   `reporting-and-loop.md` → Local outstanding. Classification rules:
 
    - **Worktree rows (`WT`):** every non-primary entry still in `git worktree list` after cleanup.
      Include path, checked-out branch (or `detached`), and one short reason.

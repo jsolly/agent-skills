@@ -1,96 +1,60 @@
-# Inventory and dashboard
+# Inventory and view-only dashboard
 
-Read before writing or opening the dashboard. Selection happens in chat — the dashboard is **view-only**.
+## Inventory
 
-## Inventory scopes
+Report missing paths loudly; never silently omit a harness or evidence lane.
 
-Skip missing paths loudly (note on dashboard). Never skip a whole harness silently.
+Canonical config:
 
-### Config assets (canonical under the active `dotagents` checkout)
+- `skills/*/SKILL.md` plus references/scripts
+- `rules/*.md`, `agents/*.md`, `global-instructions/AGENTS.md`
+- relevant primary-checkout child `AGENTS.md` files
+- live `~/.{cursor,claude,codex}/skills/<name>` targets, including broken links
+  and tool-only orphans
 
-| Asset | Paths |
-| --- | --- |
-| Skills | `skills/*/SKILL.md` (+ sibling `references/`, `scripts/`) |
-| Rules | `rules/*.md` |
-| Agents | `agents/*.md` |
-| Global brief | `global-instructions/AGENTS.md` |
-| Child briefs | `~/code/*/AGENTS.md` (primary checkouts) when relevant |
+Evidence and debt:
 
-Also note live symlink targets under `~/.{cursor,claude,codex}/skills/<name>` — bodies must resolve to the canonical skill dir, not tool-local copies. Flag broken links / tool-only orphans.
+**Lookback for logs and conversations: last 30 days.** When mining
+transcripts, session files, history, and the degraded report for
+friction/evidence, only consider material from that rolling window (mtime or
+entry timestamp — whichever the source exposes). Skip older logs/convos; do
+not treat them as current evidence. Config assets above (skills/rules/agents/
+brief) are not time-windowed.
 
-**Not editable via this skill's skill-gauntlet:** `~/.cursor/skills-cursor/` (Cursor built-ins), whole-directory symlinks, or skills that exist only as live copies with no canonical dir.
+- harness memory corpus, `MEMORY.md`, and `memory/WATCH.md`
+- `reports/degraded-ai-performance-report.sh` with examples — defaults to a
+  30-day window; do not widen it
+- Claude project transcripts, Cursor agent transcripts, Codex
+  sessions/history (≤30 days), and in-context FOLLOW-UP/TODO/DEFERRED material
 
-### Memory and friction sources
+Tool-managed built-ins and live-only bodies without a canonical source are
+inventory findings, not editable skill-gauntlet targets.
 
-1. `memory/*.md` + `MEMORY.md` (relative to the memory corpus the harness uses; typically under the personal agent home / personal-memory paths already in use)
-2. `memory/WATCH.md` (soft-archive; create if missing when capital lane runs)
-3. Degraded report: `bash reports/degraded-ai-performance-report.sh` (+ `EXAMPLES=1`) from the dotagents checkout
-4. Claude `~/.claude/projects/**/*.jsonl`
-5. Cursor `~/.cursor/projects/*/agent-transcripts/*.jsonl`
-6. Codex `~/.codex/sessions/`, `~/.codex/history.jsonl`
-7. In-memory FOLLOW-UP / pending / TODO / DEFERRED; buried config suggestions in prose
+For every asset record name/path, one-line purpose, origin, editability/reason,
+and overlaps/dependencies. Cluster duplicate procedures, skill/rule
+restatements, memory already captured in config, and skills whose body may add
+no value beyond the harness default.
 
-Thin parsers ⇒ targeted reads still required.
+## Dashboard
 
-### Per-asset record
+Write and open `<run>/dashboard.html`; paste its absolute `file://` URL in
+chat. It is view-only: no forms, mutation buttons, or selection controls.
 
-For each inventoried item capture:
+Show:
 
-- **Name / path**
-- **What it does** (one sentence from frontmatter description or first heading)
-- **Origin** (canonical repo path, child repo, memory-only, live-orphan)
-- **Editable?** (yes / no + reason)
-- **Dependencies / overlaps** (shared triggers, duplicate procedures, skill↔rule restatements, memory already encoded in config)
+- complete asset inventory and unavailable sources;
+- capital counts/clusters and recommended skill/capital selection;
+- for selected skills: frozen contract, non-sealed coverage summary, status,
+  trials/judgments, harness-reported models, regressions, candidate summary,
+  and held-out results only after use;
+- for capital: candidate kind, target, exact-diff evidence link, and apply
+  status.
 
-## Overlap discovery
+Render from `state.json` with simple local HTML.
 
-Cluster before presenting selection:
+## Selection handoff
 
-- Duplicate procedures across skills/rules/memories/plans/sessions → MERGE / RELABEL capital candidates
-- Skill whose entire body is model-common knowledge → gauntlet retirement candidate
-- Memory already mirrored in brief/rules → RETIRE capital candidate
-- Rules that only restate a skill → PEEL / MERGE
-
-## Dashboard contract
-
-Write `dashboard.html` under the run dir (`references/persistence.md`). Open with `open <path>` (macOS) or the platform equivalent. Paste the absolute `file://` link in chat.
-
-### View-only
-
-No forms, no upgrade buttons, no selection controls that mutate state. The user selects by replying in the agent chat.
-
-### Must show
-
-### Inventory
-
-- Complete skill inventory: purpose, origin, editable, overlaps
-- Capital-side summary: memories/rules/agents/brief counts, recommended promote/peel/merge clusters
-- Recommended default selection (skills + capital) with one-line rationale each
-
-### Per selected skill
-
-Update live during the run:
-
-- Outcome contract (after freeze)
-- Benchmark coverage summary (counts/kinds — **not** sealed held-out task text before use)
-- Status: red / yellow / green / Green — retire / blocked
-- Exact model IDs for every contestant and judge
-- Completed trials, blind results, judge explanations
-- Regressions, iteration history, current candidate diff summary
-- Held-out performance (only after sealed eval)
-
-### Capital lane
-
-- Candidate list with kind (PROMOTE / RETIRE / PEEL / MERGE / PREFERENCE / KEEP)
-- Draft target paths, apply status, evidence links into run-dir logs
-
-Regenerate HTML from `state.json` whenever status changes. Prefer boring readable HTML (one file, inline CSS) over a framework.
-
-## Selection handoff (chat)
-
-After opening the dashboard:
-
-1. Summarize inventory counts and the **recommended** set.
-2. Ask the user to select (skills by name, capital by id/cluster, or “all recommended”).
-3. **Wait.** Do not start gauntlet or capital apply until they reply.
-4. On reply, lock selection into `state.json`, snapshot originals, then run autonomously.
+Summarize counts and the recommended set in chat, ask for skill names/capital
+ids (or “all recommended”), then wait. A dashboard interaction is never
+authorization. After chat selection, persist it, snapshot originals, and run
+the selected lanes autonomously.
