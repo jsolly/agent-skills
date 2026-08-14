@@ -4,10 +4,16 @@ Read this file once per pass, after the GitHub PR/issue arms finish (or immediat
 arms found nothing). This arm is **local hygiene only** — it never opens, merges, or closes
 GitHub items, and it never keeps the loop alive by itself.
 
-Goal: for every primary checkout under `~/code`, remove **stale** linked worktrees and local
-branches. Stale means the head's remote PR is **merged or closed**, the branch's remote tracking
-ref is **gone**, or the branch tip is **already fully contained** in the default branch (no unique
-commits left) — and none of the keep-guards below apply.
+**Idle-machine assumption.** `/janitor` runs only when no other agents are working. Uncommitted
+files, leftover topic branches, and extra worktrees are abandoned unless they back an **open
+PR** (the HELD Dependabot TS7 worktree case, plus any other still-open head). Unique commits
+with no open PR are **deleted, not merged** — janitor never pushes leftover work to `main`
+(that would be `/ship`). "Restore" means put the primary checkout back on a clean, fast-forwarded
+`$DEFAULT`.
+
+Goal: for every primary checkout under `~/code`, extra worktrees/local branches are gone except
+the keep-guards below, and each primary is on a clean `$DEFAULT` unless that primary *is* the
+checkout for an open PR.
 
 ## Scope
 
@@ -19,110 +25,115 @@ commits left) — and none of the keep-guards below apply.
 - Act on **local** worktrees and **local** branches only. Never `git push --delete`, never delete
   a remote branch, never touch another machine's state.
 
-## Keep-guards (skip — never delete)
+## Keep-guards
 
-Skip a worktree or local branch when any of these hold:
+These are the only locals that survive a pass. Dirty / no-upstream / unique-commits-off-default
+are not on this list.
 
-1. **Primary checkout** — the worktree whose `.git` is a directory. Never remove it.
+1. **Primary checkout directory** — the worktree whose `.git` is a directory. Never
+   `git worktree remove` it. Restoring it onto `$DEFAULT` (algorithm step 3) is required, not a skip.
 2. **Protected branch names** — `main`, `master`, or the repo's default branch
-   (`gh repo view "$SLUG" --json defaultBranchRef -q .defaultBranchRef.name`).
-3. **Dirty worktree** — `git -C "$WT" status --porcelain` is non-empty, or the tree has a
-   session stash you did not create this pass. Never `git worktree remove --force`.
-4. **Open PR** — any open PR whose head ref is this branch:
+   (`gh repo view "$SLUG" --json defaultBranchRef -q .defaultBranchRef.name`). Never delete the
+   ref. An extra linked worktree that happens to be on `$DEFAULT` is still removable.
+3. **Open PR** — any open PR whose head ref is this branch:
    `gh pr list -R "$SLUG" --head "$BRANCH" --state open --json number -q 'length'`.
-5. **Locked / in-use worktree** — `git worktree remove` refuses without `--force` (active IDE lock,
+   Keep the worktree **and** the local branch, including uncommitted dirt — this is the in-flight
+   / HELD set (Dependabot majors waiting on upstream, PREPPED CI, issue PRs). Do **not**
+   `reset --hard` or `clean` these trees.
+4. **Locked / in-use worktree** — `git worktree remove` refuses without `--force` (active IDE lock,
    etc.). Report `KEPT` with the reason; do not escalate to `--force`.
-6. **Ambiguous head** — detached HEAD, or a worktree whose branch cannot be resolved. Leave it.
+5. **Ambiguous head** — detached HEAD, or a worktree whose branch cannot be resolved. Leave it.
 
-## Stale criteria (delete only when one matches, after keep-guards)
+## Discard leftover dirt
 
-A candidate is stale when **any** of these match:
+Allowed **only** on leftover linked worktrees and on a primary being restored off a leftover
+branch (no open PR). Never on an open-PR worktree, never as a push to `main`, never with `-x`
+(do not delete gitignored files such as `.env` / `node_modules`):
 
-- **PR terminal:** `gh pr list -R "$SLUG" --head "$BRANCH" --state all --json number,state,mergedAt`
-  returns at least one PR with `state == "MERGED"` or `state == "CLOSED"`, and **no** open PR for
-  that head (already covered by keep-guard 4).
-- **Remote tracking gone:** `git branch -vv` marks the local branch's upstream as `[gone]` (run
-  `git fetch --prune` on the primary first so gone-ness is current). No upstream configured is
-  **not** gone by itself.
-- **Already integrated:** after `git fetch --prune`, the branch has **zero commits not in**
-  `origin/$DEFAULT`:
+```bash
+git -C "$DIR" reset --hard HEAD
+git -C "$DIR" clean -fd
+```
 
-  ```bash
-  git rev-list --count "origin/$DEFAULT..$BRANCH"   # == 0 ⇒ tip fully contained in default
-  ```
-
-  This catches Cursor agent leftovers and renamed PR heads whose tip is already on `main` (or is
-  an ancestor of it) even when the local branch name never had a PR and has no upstream — e.g.
-  `cursor/bb603bc2` pointing at a commit that landed via a differently named PR. **Do not** treat
-  "behind default but still has unique commits" as integrated: any positive `rev-list` count means
-  unmerged work and must stay (or go through PR-terminal / `[gone]` instead).
-
-No upstream alone is still not stale — only the signals above unlock delete. Keep-guards still win
-over every stale signal (dirty, open PR, protected name, primary, locked, detached).
+This is the one janitor exception to ship's `reset --hard` ban — scoped to abandoned local trees,
+not shared/PR branches. If `clean`/`reset` fails, report `ERROR` and skip that tree; do not
+`worktree remove --force`.
 
 ## Per-repo algorithm
 
 From each primary checkout:
 
-1. `git fetch --prune` (network OK; do not modify tracked files in the primary working tree).
+1. `git fetch --prune` (network OK).
 2. Record `DEFAULT` (default branch) and list linked worktrees:
    `git worktree list --porcelain`.
-3. **Worktrees first.** For each non-primary worktree path `$WT`:
+3. **Restore the primary onto `$DEFAULT`.** Let `$CUR` be
+   `git -C "$PRIMARY" branch --show-current`.
+   - If `$CUR` is empty (detached) → keep-guard 5, skip restore.
+   - If `$CUR` has an **open PR** → leave the primary on that branch (including dirt). Report
+     `KEPT` (`open PR #<n>`).
+   - Otherwise:
+     1. Discard leftover dirt in the primary (recipe above).
+     2. If `$CUR` ≠ `$DEFAULT`, `git -C "$PRIMARY" switch "$DEFAULT"`. If switch fails because
+        another worktree already has `$DEFAULT`, report `ERROR` and skip the rest of this
+        primary's restore — do not `--force`.
+     3. `git -C "$PRIMARY" merge --ff-only "origin/$DEFAULT"`.
+     4. If `$CUR` was a leftover topic branch, delete it (Branch delete below).
+     5. Report `RESTORED` (include discarded dirt / deleted branch when that happened).
+4. **Linked worktrees.** For each non-primary worktree path `$WT`:
    - Resolve `$BRANCH` (`git -C "$WT" branch --show-current`); apply keep-guards.
-   - If stale: remove the worktree **without** `--force`:
+   - If keep-guard 3/4/5 fired: report `KEPT` (open PR / locked / detached). Silent skip for a
+     worktree that is literally the primary (already handled).
+   - Otherwise: discard leftover dirt, then remove **without** `--force`:
      `git worktree remove "$WT"`
      (from the primary). Then delete the local branch (Branch delete below). Report `CLEANED`
-     (include which stale signal matched — e.g. `already on main`, `PR #N merged`, `upstream gone`).
-   - If a keep-guard fired: report `KEPT` only when the user would otherwise wonder why a clearly
-     abandoned-looking tree survived (dirty, open PR, locked); silent skip for protected/primary.
-4. **Orphan local branches.** For each local branch not checked out in any worktree
+     (include the stale signal — e.g. `no open PR`, `already on main`, `PR #N merged`,
+     `upstream gone`, `unique commits abandoned`).
+5. **Orphan local branches.** For each local branch not checked out in any worktree
    (`git branch --format='%(refname:short)'` minus worktree checkouts and `$DEFAULT` / `main` /
    `master`):
-   - Apply keep-guards 2 and 4, then the stale criteria (PR-terminal / `[gone]` /
-     already-integrated).
-   - If stale: Branch delete. Report `PRUNED` (include which stale signal matched — e.g.
-     `already on main`).
-5. `git worktree prune` — drop stale admin records for paths already removed out-of-band.
-6. If a fleet parent dir is now empty (`~/code/.worktrees/<repo>/`, or a harness parent that this
+   - If keep-guard 2 or 3 fires, skip.
+   - Otherwise: Branch delete. Report `PRUNED` (include why — e.g. `no open PR`, `already on
+     main`, `unique commits abandoned`).
+6. `git worktree prune` — drop stale admin records for paths already removed out-of-band.
+7. If a fleet parent dir is now empty (`~/code/.worktrees/<repo>/`, or a harness parent that this
    repo exclusively owned and is empty), `rmdir` the empty directory only — never `rm -rf` a tree
    that still has entries.
-7. **Inventory outstanding locals (required every pass).** After the mutations above, **enumerate
+8. **Inventory outstanding locals (required every pass).** After the mutations above, **enumerate
    every** leftover linked worktree and non-default local branch across the same primary-checkout
-   set — not only the ones this pass touched, and never as a prose summary. This is visibility for
-   leftovers the keep-guards correctly refused (dirty / open PR / locked) and for never-pushed
-   branches that still have unique commits. Emit via the report contract in
+   set — not only the ones this pass touched, and never as a prose summary. A successful idle pass
+   should only list open-PR (and rare locked/detached) survivors. Emit via the report contract in
    `reporting-and-loop.md` → Local outstanding. Classification rules:
 
    - **Worktree rows (`WT`):** every non-primary entry still in `git worktree list` after cleanup.
      Include path, checked-out branch (or `detached`), and one short reason.
    - **Branch rows (`BRANCH`):** every local branch that is not `$DEFAULT` / `main` / `master`,
      **except** branches already covered by a `WT` row's checked-out branch (no duplicate). If the
-     **primary** checkout is itself on a non-default branch, include that as a `BRANCH` row with
-     reason `primary checkout`.
-   - **Reason (pick the first that matches):** `dirty` · `open PR #<n>` · `locked` · `detached` ·
-     `no upstream` · `upstream gone` (should be rare post-prune — keep-guard blocked delete) ·
-     `tracking <remote>/<branch>` (live upstream). Already-integrated leftovers should have been
-     removed in steps 3–4; if one somehow remains (e.g. remove refused), append
-     `(tip on $DEFAULT)`.
+     **primary** is still on a non-default branch, include that as a `BRANCH` row with reason
+     `open PR #<n>` or `primary checkout` (switch refused / detached).
+   - **Reason (pick the first that matches):** `open PR #<n>` · `locked` · `detached` ·
+     `primary checkout` (restore refused). Do **not** leave `dirty` / `no upstream` /
+     `upstream gone` as keep reasons — those are supposed to have been discarded or pruned. If a
+     remove refused, append `(tip on $DEFAULT)` when already-integrated.
    - Empty fleet ⇒ report `Local outstanding: none` (still required — do not omit the section).
 
 ### Branch delete
 
-After the worktree is gone (or when the branch had no worktree):
+After the worktree is gone (or when the branch had no worktree), and keep-guards 2 and 3 did not
+fire:
 
 ```bash
 git branch -d "$BRANCH" 2>/dev/null || git branch -D "$BRANCH"
 ```
 
-Prefer `-d`. Use `-D` only when `-d` refuses **and** the stale criteria already matched
-(PR merged/closed, upstream `[gone]`, or already-integrated). Never `-D` a branch that failed a
-keep-guard.
+Prefer `-d`. Use `-D` when `-d` refuses because the branch still has unique commits — under the
+idle-machine assumption those commits are abandoned (no open PR). Never `-D` a branch that failed
+a keep-guard. Never delete `$DEFAULT` / `main` / `master`.
 
 ## Ordering vs GitHub arms
 
 - Run **after** PR drain + issue triage in the same pass so a branch still needed for an in-flight
-  authorized item is not removed out from under that work.
-- Local cleanup failures (a single locked worktree, a refused remove) are **not** HOLDs and do not
+  authorized item (open PR) is not removed out from under that work.
+- Local cleanup failures (a single locked worktree, a refused switch) are **not** HOLDs and do not
   fail the pass — report `KEPT` / `ERROR` for that row and continue the rest of the fleet.
 - This arm does **not** affect loop drain: a pass with zero actionable authorized GitHub items is
   still drained even if local cleanup removed something (or found nothing).
@@ -130,7 +141,8 @@ keep-guard.
 ## Don't
 
 - Don't scan linked-worktree paths as additional repos (duplicates the GitHub arm and races cleanup).
-- Don't `git worktree remove --force`, `rm -rf` a dirty tree, or reset another session's room.
+- Don't `git worktree remove --force` or `git clean -fdx`.
+- Don't `reset --hard` / `clean` a worktree or primary whose branch has an open PR.
 - Don't delete remotes or close/reopen PRs from this arm.
-- Don't treat "no upstream" alone as stale — require PR-terminal, `[gone]`, or already-integrated.
+- Don't merge leftover unique commits onto `main` (no push to `$DEFAULT`).
 - Don't clean repos outside `~/code` primary checkouts.

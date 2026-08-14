@@ -2,11 +2,11 @@
 name: janitor
 description: >-
   Use when the user says `/janitor` or `/janitor once`, or wants an unattended
-  drain of self-/Dependabot-authored issues and PRs across `~/code` plus stale
-  local worktree/branch cleanup. Bare `/janitor` self-arms a recurring loop
-  until the backlog drains; `once` is a single pass. NOT for third-party/fork
-  contributions, post-merge production deploys, or substituting `/ship`'s
-  review/publish flow.
+  drain of self-/Dependabot-authored issues and PRs across `~/code` plus leftover
+  local worktree/branch cleanup (idle leftovers discarded; open-PR / HOLD
+  trees kept). Bare `/janitor` self-arms a recurring loop until the backlog
+  drains; `once` is a single pass. NOT for third-party/fork contributions,
+  post-merge production deploys, or substituting `/ship`'s review/publish flow.
 ---
 
 # Janitor
@@ -14,11 +14,12 @@ description: >-
 Unattended maintainer for authorized open issues/PRs across every git repo under
 `~/code`, plus local worktree/branch hygiene in those checkouts. One invocation
 is one idempotent pass: **PR → correct + green + merge; issue → implement +
-`/ship` + merge when green + review-clean; local → remove stale linked
-worktrees/branches.** Durable cross-pass state lives on GitHub (labels,
-`JANITOR HOLD:` comments, linked PRs, checks); local cleanup re-derives each
-pass. Narrow standing authorization: author gate, green gate, review-fleet,
-HOLD, and local keep-guards.
+`/ship` + merge when green + review-clean; local → restore primaries onto
+`$DEFAULT` and delete leftover worktrees/branches except open-PR heads.**
+Durable cross-pass state lives on GitHub (labels, `JANITOR HOLD:` comments,
+linked PRs, checks); local cleanup re-derives each pass. Narrow standing
+authorization: author gate, green gate, review-fleet, HOLD, and local
+keep-guards (open PR / locked / detached / protected default).
 
 ## Invocation modes
 
@@ -93,13 +94,17 @@ load `local-cleanup.md` once — it runs even on an empty GitHub backlog.
 - Never merge or arm an unprepped Dependabot major.
 - Never author issue work outside `/ship`, and never merge it without clean
   review + green CI.
-- Never push to `main`, force-push shared branches, or edit in a primary
-  checkout. Gate-integrity / `--no-verify` / force-merge hard-stops: cite
-  `skills/ship/references/fleet-guards.md` (do not restate).
+- Never push to `main`, force-push shared branches, or author issue/PR work
+  in a primary checkout. Local-cleanup may restore a leftover primary onto
+  `$DEFAULT` (`references/local-cleanup.md`). Gate-integrity / `--no-verify` /
+  force-merge hard-stops: cite `skills/ship/references/fleet-guards.md` (do
+  not restate).
 - Never touch a draft or WIP/DO-NOT-MERGE self PR.
-- Never `git worktree remove --force`, delete a dirty worktree, delete a
-  branch with an open PR, delete the default/protected branch, remove a
-  primary checkout, or delete a **remote** branch as part of local cleanup.
+- Never `git worktree remove --force`, `git clean -fdx`, delete a branch with
+  an open PR, reset/clean an open-PR worktree, delete the default/protected
+  branch, remove a primary checkout directory, or delete a **remote** branch
+  as part of local cleanup. Idle leftover dirt (uncommitted files and topic
+  branches with no open PR) is discarded, not merged to `main`.
 - When correctness needs judgment or cannot be validated, follow the universal
   `JANITOR HOLD:` contract and disarm auto-merge. Later passes may maintain
   held PRs but never land them.
@@ -113,6 +118,6 @@ load `local-cleanup.md` once — it runs even on an empty GitHub backlog.
   bumps, prep persistence.
 - `references/issue-triage.md` — idempotency, claim, worktree implementation,
   `/ship`, escalation.
-- `references/local-cleanup.md` — stale signals + keep-guards; outstanding inventory.
+- `references/local-cleanup.md` — idle leftover discard; open-PR keep; outstanding inventory.
 - `references/reporting-and-loop.md` — bounding, report contract, loop arm/stop.
 - `references/gotchas.md` — recurring fleet / mergeability / lifecycle failures.

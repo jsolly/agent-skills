@@ -18,19 +18,18 @@ when the owning route playbook does not resolve a recurring failure; it is not a
 
 ## Local cleanup
 
-- **Fetch `--prune` before trusting `[gone]`.** Without a prune fetch, deleted remote heads still
-  look live and stale locals survive forever; with a stale remote-tracking cache, the inverse false
-  positive is rarer but still avoid acting on upstream state you haven't refreshed this pass.
-- **Open PR beats "looks abandoned".** A clean worktree on a branch with an open PR is in-flight —
-  leave it. Terminal (merged/closed) PR state is what unlocks delete, not directory mtime.
-- **No upstream ≠ gone, but tip-on-default is stale.** Never-pushed topic branches and Dependabot
-  worktrees created with `--no-track` often have no upstream; "no upstream" alone is not stale.
-  They become deletable when a merged/closed PR head matches, upstream is `[gone]`, **or**
-  `git rev-list --count origin/$DEFAULT..$BRANCH` is `0` (already integrated — the Cursor
-  `cursor/<id>` leftover case). Branches that still have unique commits stay and appear in Local
-  outstanding as `no upstream`.
-- **`git worktree remove` without `--force`, or skip.** A locked/dirty refusal is a `KEPT` row, not
-  a reason to escalate. Same posture as `/ship` close: never sweep another session's dirty room.
+- **Fetch `--prune` before trusting remote state.** Without a prune fetch, deleted remote heads still
+  look live; always refresh before deciding a leftover is gone.
+- **Open PR is the keep set.** A worktree/branch whose head has an open PR is in-flight or HELD
+  (Dependabot TS7, PREPPED CI, issue PRs) — leave it, including dirt. No open PR ⇒ abandoned under
+  the idle-machine assumption: discard dirt, remove the worktree, delete the branch (`-D` if it
+  still has unique commits). Do not `/ship` or merge those commits onto `main`.
+- **Restore primaries onto `$DEFAULT`.** A leftover primary sitting on `chore/…` with no open PR
+  is discarded and switched back to a fast-forwarded default. If `git switch` fails because
+  another worktree already has `$DEFAULT`, report `ERROR` — do not `--force`.
+- **`git worktree remove` without `--force`, or skip.** Discard dirt first (`reset --hard` +
+  `git clean -fd`, never `-fdx`), then remove. A locked refusal is a `KEPT` row, not a reason to
+  escalate. Never reset/clean an open-PR tree.
 - **Delete the worktree before the branch.** Removing the branch first fails while a worktree still
   has it checked out; reverse order leaves an orphaned directory with a broken `.git` file.
 
