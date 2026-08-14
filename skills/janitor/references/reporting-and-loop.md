@@ -41,20 +41,19 @@ Janitor pass — <n> repos, <m> authorized items (<p> PRs, <i> issues)
   SKIPPED      my-org/<repo>#NN            author @thirdparty (not authorized)
   CLEANED      example-project/example-app   worktree ~/code/.worktrees/example-app-pr597 + branch dependabot/npm_and_yarn/typescript-7.0.2 (PR #597 merged)
   CLEANED      my-org/agent-config            worktree ~/.cursor/worktrees/agent-config/z9qd + branch cursor/bb603bc2 (already on main)
-  PRUNED       my-org/ExampleGeo             local branch feat/old-export (upstream gone)
+  RESTORED     my-org/my-org-website       primary onto main (discarded dirt on chore/gh-actions-node24, deleted branch)
+  PRUNED       my-org/ExampleGeo             local branch feat/old-export (no open PR)
   PRUNED       my-org/agent-config            local branch cursor/61ac1ba9 (already on main)
-  KEPT         my-org/agent-config            ~/.cursor/worktrees/agent-config/90jv (dirty)
+  KEPT         example-org/example-app  ~/code/.worktrees/example-app-pr597 (open PR #597)
 Local outstanding:
-  WT      my-org/agent-config            ~/.cursor/worktrees/agent-config/90jv · feat/messy · dirty
   WT      example-org/example-app  ~/code/.worktrees/example-app-pr597 · dependabot/npm_and_yarn/typescript-7.0.2 · open PR #597
-  BRANCH  my-org/my-org-website       chore/gh-actions-node24 · primary checkout · upstream gone
-Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 2 cleaned, 2 pruned, 1 kept, 3 outstanding, 0 errors.
+Summary: 1 merged, 1 adapted+merged, 1 upgraded+merged, 1 implemented+merged, 1 armed, 1 rebased, 1 prepped, 2 held, 2 cleaned, 1 restored, 2 pruned, 1 kept, 1 outstanding, 0 errors.
 Schedule: last 2026-07-25 09:12:04 EDT · next 2026-07-25 09:17:04 EDT · every 5m · unbounded (until drain)
 ```
 
-Local-cleanup action rows (`CLEANED` / `PRUNED` / `KEPT`) are optional when the arm found nothing to
-say; include them when something was removed or deliberately retained against an abandoned-looking
-candidate. They never change drain math.
+Local-cleanup action rows (`CLEANED` / `RESTORED` / `PRUNED` / `KEPT`) are optional when the arm
+found nothing to say; include them when something was removed, restored onto `$DEFAULT`, or
+deliberately retained (open PR / locked). They never change drain math.
 
 **Local outstanding is required every pass** (including idle and drained reports) — the full
 post-cleanup inventory of leftover linked worktrees and non-default local branches across every
@@ -64,16 +63,17 @@ post-cleanup inventory of leftover linked worktrees and non-default local branch
 Local outstanding: none
 ```
 
-Otherwise **enumerate every leftover** as one `WT` / `BRANCH` row with its keep-guard or
-non-stale reason (`dirty`, `open PR #<n>`, `locked`, `detached`, `no upstream`,
-`primary checkout`, …). Do **not** summarize ("lists remaining leftovers", "several KEPT",
-"inventory as usual") — the drained report must still render the complete de-duplicated list
-so a human can see why each survivor stayed. Outstanding rows are visibility only — they never
-change drain math and never keep the loop alive.
+Otherwise **enumerate every leftover** as one `WT` / `BRANCH` row with its keep-guard reason
+(`open PR #<n>`, `locked`, `detached`, `primary checkout` if restore refused). Do **not**
+summarize ("lists remaining leftovers", "several KEPT", "inventory as usual") — the drained
+report must still render the complete de-duplicated list so a human can see why each survivor
+stayed. Outstanding rows are visibility only — they never change drain math and never keep
+the loop alive. After a successful idle pass the list should be open-PR trees (HELD Dependabot
+and other still-open heads), not dirty leftover primaries.
 
 If nothing was actionable but work is still in flight (ARMED pending CI, deferred conflicts,
 IMPLEMENTED PRs pending CI, UNKNOWN mergeability), one line, then Local outstanding, then the
-schedule footer — the loop keeps ticking. Action rows (`CLEANED`/`PRUNED`/`KEPT`) stay optional:
+schedule footer — the loop keeps ticking. Action rows (`CLEANED`/`RESTORED`/`PRUNED`/`KEPT`) stay optional:
 
 ```text
 Janitor: N authorized items, all armed/in-flight, nothing to do this pass.
@@ -147,9 +147,9 @@ Do not let the loop idle forever on an empty backlog. At the end of each pass, d
 - **Drained ⇒ end the loop.** The backlog is drained when no authorized open **item (PR or issue)**
   remains that the janitor can still act on: either zero authorized items are open, or every
   remaining one is terminal for the janitor (HELD for a human — a `JANITOR HOLD:` judgment call, a
-  self PR needing review, or an issue too ambiguous to implement). Local stale worktrees/branches
-  are **not** backlog items — cleaning them does not prevent drain, leftover `KEPT` dirties do
-  not keep the loop alive, and the **Local outstanding** inventory is visibility only (never
+  self PR needing review, or an issue too ambiguous to implement). Local leftover worktrees/branches
+  are **not** backlog items — cleaning them does not prevent drain, leftover `KEPT` open-PR trees
+  do not keep the loop alive, and the **Local outstanding** inventory is visibility only (never
   in-flight). When drained, end the loop the janitor armed instead of letting the next
   tick fire: stop it via the `loop` skill's own stop mechanism (don't schedule/reschedule the next
   iteration). Close with the drained report line so the user sees why the loop ended (HELD items are
@@ -157,8 +157,8 @@ Do not let the loop idle forever on an empty backlog. At the end of each pass, d
 - **Still in flight ⇒ keep looping.** Anything the next pass could advance keeps the loop alive:
   ARMED auto-merge waiting on CI, PREPPED majors pending CI, an IMPLEMENTED issue's PR pending CI,
   checks pending, BEHIND/DIRTY PRs still converging, UNKNOWN mergeability, or a PR merged this pass
-  (its stacked siblings, or the issue it closed, may shift state). Local-cleanup `KEPT`/`CLEANED`
-  rows and Local outstanding alone never count as in-flight.
+  (its stacked siblings, or the issue it closed, may shift state). Local-cleanup
+  `KEPT`/`CLEANED`/`RESTORED`/`PRUNED` rows and Local outstanding alone never count as in-flight.
 
 The `once` and launchd variants are unaffected — each is one independent pass that exits either
 way; a drained headless pass simply reports and exits, and stopping that cadence means unloading

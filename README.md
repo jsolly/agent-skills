@@ -48,7 +48,7 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `find-edgecase-slop` | Find spiked edge-case complexity; finishes with CreatePlan laundry-list todos |
 | `ship` | Review, gate, integrate to main (PR) |
 | `seo` | Technical SEO + Lighthouse audit |
-| `janitor` | Drain issues/PRs across repos; prune stale local worktrees/branches |
+| `janitor` | Drain issues/PRs across repos; discard idle leftover worktrees/branches (keep open-PR heads) |
 | `optimize-workspace` | Monthly workspace audit — drain memories into durable config |
 | `gauntlet-loop` | Self-start Gauntlet Loop on substantial plans / large implementations |
 | `investigate` | Evidence-driven diagnosis; finishes with CreatePlan (fix or evidence-acquisition) |

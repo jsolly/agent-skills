@@ -70,9 +70,11 @@ Pre-wired alternate postures (change the default above to adopt one):
    version, **HOLD** and report — don't merge an adaptation you can't validate.
 4. **Never weaken the gate to force green.** Don't disable, skip, `continue-on-error`, or loosen a
    failing check; don't pin/downgrade around the problem. `--no-verify` / `--admin` / force-merge /
-   force-push / `reset --hard` hard-stops: cite `skills/ship/references/fleet-guards.md` (do not
-   restate). Green must mean the code genuinely passes under the new dependency. Editing app code
-   to comply with the upgrade (invariant 3) is not weakening the gate; suppressing the check is.
+   force-push hard-stops: cite `skills/ship/references/fleet-guards.md` (do not restate).
+   `reset --hard` is forbidden on shared/PR branches and as a ship operation; the only janitor
+   exception is idle leftover discard in `local-cleanup.md` (invariant 11). Green must mean the
+   code genuinely passes under the new dependency. Editing app code to comply with the upgrade
+   (invariant 3) is not weakening the gate; suppressing the check is.
 5. **Push only to the PR's head branch, never to `main`.** No `git push origin HEAD:main`.
    Force-push / `reset --hard` on shared branches: cite
    `skills/ship/references/fleet-guards.md`.
@@ -92,12 +94,14 @@ Pre-wired alternate postures (change the default above to adopt one):
     to it — don't gold-plate, refactor adjacent code, or invent requirements the issue didn't state.
     If the issue is ambiguous or needs a product/design call, that's a HOLD-with-comment **before**
     writing code — guessing at intent and merging it is the failure mode this invariant prevents.
-11. **Local cleanup is keep-guarded and local-only.** Remove a linked worktree or local branch only
-    when `local-cleanup.md`'s stale criteria match **and** no keep-guard fires (dirty, open PR,
-    protected/default branch, primary checkout, locked/in-use, unresolved head). Never
-    `git worktree remove --force`, never delete remote branches, never treat "no upstream" alone as
-    `[gone]` (already-integrated via `rev-list --count origin/$DEFAULT..$BRANCH == 0` is a separate
-    stale signal). A refused cleanup is a report row, not a HOLD and not a bypass invitation.
+11. **Local cleanup is idle-machine and local-only.** `/janitor` assumes no other agents are
+    working. Discard uncommitted leftover dirt and delete extra worktrees/topic branches **unless**
+    a `local-cleanup.md` keep-guard fires (open PR, protected/default branch name, primary
+    checkout directory, locked/in-use, unresolved head). Dirty / no-upstream / unique-commits
+    without an open PR are **not** keep-guards — delete them (`-D` if needed); do not merge them
+    onto `main`. `reset --hard` + `git clean -fd` (never `-fdx`) are allowed only on those
+    leftovers, never on an open-PR tree. Never `git worktree remove --force`, never delete remote
+    branches. A refused cleanup is a report row, not a HOLD and not a bypass invitation.
 
 ## Universal HOLD contract
 
