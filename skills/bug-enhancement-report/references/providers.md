@@ -5,12 +5,19 @@ Load from the skill entry. Do not invent a tracker.
 ## Resolve (first match wins)
 
 1. **User named it** — a URL, `owner/repo`, Linear/Jira project, or forum
-   topic. Use that.
+   topic. Use that — except `github.com/getcursor/cursor` (Cursor's leftover
+   in-app Report Issue URL): rewrite to forum.cursor.com and load
+   `references/cursor-forum.md`.
 2. **Vendor vs repo** — if the subject is a third-party app, CLI, editor,
    cloud product, or SaaS, file with **that vendor's official tracker**
    (product docs → Support / GitHub org / forum / in-app feedback). Filing a
    Cursor, VS Code, GitHub-the-product, or similar bug on the user's
    application repo is a wrong-tracker failure.
+   **Cursor** (IDE, CLI `agent`, Cloud/Background Agent, BugBot, or
+   forum.cursor.com itself) → [forum.cursor.com](https://forum.cursor.com)
+   per `references/cursor-forum.md`. Ignore the leftover in-app GitHub
+   "Report Issue" URL (`github.com/getcursor/cursor`). Billing/account →
+   email `hi@cursor.com`, do not post.
 3. **Current git remote** — if the subject is *this* codebase, use the CWD
    repo's issue tracker:
    - `github.com` / `github.example` → GitHub issues (`gh`)
@@ -50,7 +57,8 @@ months is enough unless the user names an older ticket).
 | GitLab | `glab issue list --search '…' --state opened` then closed |
 | Linear | MCP/API issue search on team + text; include canceled/completed |
 | Jira | JQL `text ~ "…" AND project = KEY ORDER BY updated DESC` |
-| Discourse / product forum | Search API or site search in the product category |
+| Cursor (forum.cursor.com) | `references/cursor-forum.md` — `search.json` with `#bug-report` or `#feature-requests`; then topic `.json` |
+| Discourse / other product forum | Search API or site search in the product category |
 | Other | Documented search on that tracker; if none exists, say so in the receipt and do not create blindly |
 
 Read the best hits. A **match** is the same symptom + same component, not
@@ -71,12 +79,17 @@ merely shared keywords. Follow `Duplicate of #N` to the canonical item.
 **Value gate for create:** would a maintainer learn something they cannot
 already see on an existing item? If not, comment or abstain.
 
+Cursor forum: staff *want* extra OS/config/repro on an existing bug — that
+is a **comment**, not a second topic. Feature requests: vote + comment,
+never clone. Full table in `references/cursor-forum.md`.
+
 ## Post
 
 Honor issue / request templates when the repo or project has them
-(`.github/ISSUE_TEMPLATE`, GitLab templates, Linear templates). Fill every
-required field; do not invent labels that do not exist (`gh label list`,
-equivalent elsewhere).
+(`.github/ISSUE_TEMPLATE`, GitLab templates, Linear templates, Cursor
+forum form in `references/cursor-forum.md`). Fill every required field;
+do not invent labels that do not exist (`gh label list`, equivalent
+elsewhere).
 
 Prefer MCP create/comment tools when they match. Otherwise:
 
@@ -88,6 +101,10 @@ gh issue comment --repo OWNER/REPO NUMBER --body-file COMMENT.md
 # GitLab
 glab issue create --title '…' --description "$(cat BODY.md)"
 glab issue note ISSUE --message "$(cat COMMENT.md)"
+
+# Cursor forum (Discourse) — only with an existing API key; see
+# references/cursor-forum.md. Browser composer is preferred when logged in.
+# curl -X POST https://forum.cursor.com/posts.json  (title/raw/category or topic_id/raw)
 ```
 
 Capture the URL the tool prints. No URL ⇒ `blocked`.
@@ -128,6 +145,7 @@ them safe. List them under Gaps instead.
    else inline what fits and report the rest as not attached.
 5. **Forums** — composer upload if the session can; else report not
    attached. Do not gist private logs to attach to a public forum post.
+   Cursor mime types and log-zip ban: `references/cursor-forum.md`.
 
 Never commit logs into the application repo as a substitute for an
 attachment. Never paste credential files. Every successful upload must

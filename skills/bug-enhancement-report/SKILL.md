@@ -2,11 +2,12 @@
 name: bug-enhancement-report
 description: >-
   Use when the user says `/bug-enhancement-report`, or asks to file / log /
-  open a bug, defect, enhancement, or feature request with a tracker or vendor.
-  Search existing reports first; comment on a match instead of duplicating;
-  otherwise file a new report only when it would add value, with exhaustive
-  redacted repro evidence (environment, versions, logs, stacks, resource usage,
-  uploads when the provider allows). NOT for diagnosing a local fix plan
+  open a bug, defect, enhancement, or feature request with a tracker or vendor
+  (including Cursor IDE/CLI/Cloud Agent/BugBot on forum.cursor.com). Search
+  existing reports first; comment on a match instead of duplicating; otherwise
+  file a new report only when it would add value, with exhaustive redacted
+  repro evidence (environment, versions, logs, stacks, resource usage, uploads
+  when the provider allows). NOT for diagnosing a local fix plan
   (`investigate`), draining or implementing your own issues (`janitor`),
   session handoff (`fyi`), or writing a deep-research prompt (`research`).
 ---
@@ -52,8 +53,11 @@ All required; miss any → `blocked`, not done:
    shape. Run `scripts/collect-host-evidence.sh` via
    `<path-to-this-skill>/scripts/collect-host-evidence.sh` from the
    reproducing CWD (not from the skill repo).
+3. When the provider is Cursor (IDE, CLI, Cloud/Background Agent, BugBot, or
+   the forum itself): `references/cursor-forum.md` — categories, search,
+   template, Request ID / Share Data, vote vs clone, billing email.
 
-Do not preload either reference until the kind + subject are pinned.
+Do not preload these references until the kind + subject are pinned.
 
 ## Loop
 
@@ -66,16 +70,21 @@ Do not preload either reference until the kind + subject are pinned.
    → create (link related items); question / user-error / no new signal →
    `abstain`.
 5. **Collect** — if posting (`create` or a `comment` with new signal),
-   collect per `references/evidence.md`. Honor the repo's issue template
-   when one exists. Redact before any post. Skip collection on `abstain`.
+   collect per `references/evidence.md`. Honor the provider template
+   (GitHub/GitLab issue templates; Cursor forum form in
+   `references/cursor-forum.md`). Redact before any post. Skip collection
+   on `abstain`.
 6. **Post** — comment or create via MCP if the connected tool can do it,
-   else the provider CLI. Upload valuable artifacts per the upload ladder.
+   else the provider CLI or documented web/API (Cursor = Discourse).
+   Upload valuable artifacts per the upload ladder.
 7. **Receipt** — fields below. `done` only when the product gate holds.
 
 ## Don't
 
 - File a vendor/product bug on the user's application repo, or the reverse
+  (Cursor product bugs go to forum.cursor.com, not the current git remote)
 - Create when a search hit already tracks the same symptom
+- File Cursor billing/account issues on the forum (email `hi@cursor.com`)
 - Invent OS/app versions, logs, stacks, or resource numbers
 - Post secrets, `.env` contents, credential files, or unredacted auth headers
 - Claim an attachment that was not uploaded

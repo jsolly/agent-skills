@@ -25,6 +25,9 @@ bash <path-to-this-skill>/scripts/collect-host-evidence.sh \
   --probe 'node -v'
 ```
 
+Cursor product reports: never `--include-git`; probes, About Cursor, Request ID,
+and DevTools are in `references/cursor-forum.md`. Never `--probe 'agent about'`.
+
 Pass `--include-git` **only** when the subject is this codebase (vendor
 tickets must not leak private repo identity, branch names, or untracked
 filenames):
@@ -51,7 +54,7 @@ fields with native commands and quote them.
 | Expected vs actual | yes | proposed vs current | Observed, not hoped |
 | Repro steps | yes, numbered, starting from a clean state | yes when there is a current workaround | Commands/clicks you actually ran |
 | OS + arch | yes | when relevant | Script |
-| App / CLI / runtime versions | yes | the product being changed | `--version`, about dialog, `package.json` / lockfile — not guessed |
+| App / CLI / runtime versions | yes | the product being changed | `--version`, about dialog, `package.json` / lockfile — not guessed. Cursor: `references/cursor-forum.md` |
 | Git SHA + branch + dirty | if the subject is this repo | if the subject is this repo | Collector `--include-git`, or `git rev-parse HEAD` + `git status -sb` — never `user.email`, never paste origin onto a vendor ticket |
 | Logs | yes | rarely | Tail of the relevant log, crash report, CI log. Prefer files over screenshots of text |
 | Stack traces | yes if a crash/exception | n/a | Full trace; do not trim the top frames |
