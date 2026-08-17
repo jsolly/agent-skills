@@ -46,6 +46,7 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `research` | Deep-research prompt for external tools |
 | `remove-feature` | Hard-delete a feature; planning finishes with CreatePlan laundry-list todos |
 | `find-edgecase-slop` | Find spiked edge-case complexity; finishes with CreatePlan laundry-list todos |
+| `find-fail-open` | Audit where failures cause silent skips/degradation; finishes with CreatePlan laundry-list todos |
 | `ship` | Review, gate, integrate to main (PR) |
 | `seo` | Technical SEO + Lighthouse audit |
 | `janitor` | Drain issues/PRs across repos; discard idle leftover worktrees/branches (keep open-PR heads) |
