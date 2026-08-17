@@ -134,16 +134,15 @@ under Gaps as **not attached**.
 
 ## Evidence Cursor staff actually use
 
-Collector from the reproducing CWD — **never** `--include-git` (vendor ticket):
+Collector from the reproducing CWD — **never** `--include-git`. The helper
+already records `cursor --version` and `agent --version` in Toolchain when
+those CLIs exist — do **not** also `--probe` them.
 
 ```bash
-bash <path-to-this-skill>/scripts/collect-host-evidence.sh \
-  --probe 'cursor --version' \
-  --probe 'agent --version'
+bash <path-to-this-skill>/scripts/collect-host-evidence.sh
 ```
 
-Never `--probe 'agent about'` — it prints `User Email`. CLI version is
-`agent --version` only.
+Never `--probe 'agent about'` — it prints `User Email`.
 
 ### Versions
 
