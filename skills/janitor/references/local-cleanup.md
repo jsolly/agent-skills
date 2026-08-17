@@ -9,11 +9,12 @@ files, leftover topic branches, and extra worktrees are abandoned unless they ba
 PR** (the HELD Dependabot TS7 worktree case, plus any other still-open head). Unique commits
 with no open PR are **deleted, not merged** — janitor never pushes leftover work to `main`
 (that would be `/ship`). "Restore" means put the primary checkout back on a clean, fast-forwarded
-`$DEFAULT`.
+`$DEFAULT`. Leftover loopback fleet-cwd dev servers are always abandoned — a leftover
+`npm run dev` is not a keep-guard, even on an open-PR tree.
 
-Goal: for every primary checkout under `~/code`, extra worktrees/local branches are gone except
-the keep-guards below, and each primary is on a clean `$DEFAULT` unless that primary *is* the
-checkout for an open PR.
+Goal: leftover loopback fleet-cwd dev servers are gone, and for every primary checkout under
+`~/code`, extra worktrees/local branches are gone except the keep-guards below, and each
+primary is on a clean `$DEFAULT` unless that primary *is* the checkout for an open PR.
 
 ## Scope
 
@@ -24,6 +25,33 @@ checkout for an open PR.
   `.worktrees/` — do not walk those directories as a second discovery pass.
 - Act on **local** worktrees and **local** branches only. Never `git push --delete`, never delete
   a remote branch, never touch another machine's state.
+- Stop leftover **loopback** listeners only via `scripts/stop-stale-dev-servers.mts` (once per
+  pass, before the per-repo loop). Do not `pkill`, do not kill by port, do not scan per repo.
+
+## Stop stale dev servers
+
+Run **once per pass**, before the per-repo loop — a listener whose cwd is a leftover worktree
+can make `git worktree remove` refuse. Do not re-run per primary.
+
+```bash
+node <path-to-this-skill>/scripts/stop-stale-dev-servers.mts
+```
+
+The script is the scanner and the kill. It SIGTERM then SIGKILL any TCP listener that is
+**all** of: loopback-reachable (`127.0.0.1` / `::1` / `0.0.0.0` / `*` / `[::]`), cwd under
+`~/code` or `~/.cursor/worktrees`, and command matching the allowlist (`vite` / `next` /
+`astro` / `wrangler … dev` / `sam local` / `npm|pnpm|yarn|bun run dev`, including
+`node_modules` binaries). It never kills databases, container engines, Cursor, sshd, generic
+`node server.js`, or anything whose cwd is outside those roots. `lsof` missing is an `ERROR`
+row for the arm, not a reason to invent `pkill -f`.
+
+Map stdout NDJSON `STOPPED` → report `STOPPED` (pid, address, cwd, short command). Map
+`ERROR` → `ERROR` and continue the rest of local cleanup. Empty stdout means nothing matched.
+`--dry-run` / `--fixture` are test-only — do not pass them in a pass.
+
+This arm does **not** affect drain math and does **not** belong in Local outstanding
+(servers are not keep-guarded leftovers). Keep-guards spare worktrees and branches, not
+listeners — an open-PR tree's leftover `vite` still stops.
 
 ## Keep-guards
 
@@ -133,10 +161,11 @@ a keep-guard. Never delete `$DEFAULT` / `main` / `master`.
 
 - Run **after** PR drain + issue triage in the same pass so a branch still needed for an in-flight
   authorized item (open PR) is not removed out from under that work.
-- Local cleanup failures (a single locked worktree, a refused switch) are **not** HOLDs and do not
-  fail the pass — report `KEPT` / `ERROR` for that row and continue the rest of the fleet.
+- Local cleanup failures (a single locked worktree, a refused switch, a kill `ERROR`) are
+  **not** HOLDs and do not fail the pass — report `KEPT` / `ERROR` for that row and continue
+  the rest of the fleet.
 - This arm does **not** affect loop drain: a pass with zero actionable authorized GitHub items is
-  still drained even if local cleanup removed something (or found nothing).
+  still drained even if local cleanup removed something, stopped a server, or found nothing.
 
 ## Don't
 
@@ -146,3 +175,7 @@ a keep-guard. Never delete `$DEFAULT` / `main` / `master`.
 - Don't delete remotes or close/reopen PRs from this arm.
 - Don't merge leftover unique commits onto `main` (no push to `$DEFAULT`).
 - Don't clean repos outside `~/code` primary checkouts.
+- Don't `pkill -f`, kill by port number, or kill anything the script did not report as
+  `STOPPED` / `WOULD_STOP`. Don't stop databases, container engines, Cursor, or sshd.
+- Don't run the stopper per repo — once per pass, before worktree remove.
+- Don't keep the loop alive because a server was stopped (or because a kill `ERROR`d).

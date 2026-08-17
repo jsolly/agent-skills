@@ -4,18 +4,22 @@ description: >-
   Use when the user says `/janitor` or `/janitor once`, or wants an unattended
   drain of self-/Dependabot-authored issues and PRs across `~/code` plus leftover
   local worktree/branch cleanup (idle leftovers discarded; open-PR / HOLD
-  trees kept). Bare `/janitor` self-arms a recurring loop until the backlog
+  trees kept) and leftover loopback fleet-cwd dev servers. Bare `/janitor`
+  self-arms a recurring loop until the backlog
   drains; `once` is a single pass. NOT for third-party/fork contributions,
-  post-merge production deploys, or substituting `/ship`'s review/publish flow.
+  post-merge production deploys, substituting `/ship`'s review/publish flow,
+  or killing databases / container engines / editor processes.
 ---
 
 # Janitor
 
 Unattended maintainer for authorized open issues/PRs across every git repo under
-`~/code`, plus local worktree/branch hygiene in those checkouts. One invocation
-is one idempotent pass: **PR → correct + green + merge; issue → implement +
-`/ship` + merge when green + review-clean; local → restore primaries onto
-`$DEFAULT` and delete leftover worktrees/branches except open-PR heads.**
+`~/code`, plus local worktree/branch hygiene and leftover loopback dev-server
+cleanup in those checkouts. One invocation is one idempotent pass: **PR →
+correct + green + merge; issue → implement + `/ship` + merge when green +
+review-clean; local → stop stale fleet-cwd loopback listeners, restore
+primaries onto `$DEFAULT`, and delete leftover worktrees/branches except
+open-PR heads.**
 Durable cross-pass state lives on GitHub (labels, `JANITOR HOLD:` comments,
 linked PRs, checks); local cleanup re-derives each pass. Narrow standing
 authorization: author gate, green gate, review-fleet, HOLD, and local
@@ -30,8 +34,8 @@ keep-guards (open PR / locked / detached / protected default).
 - **Drain termination:** stop the loop when zero actionable authorized items
   remain (including when every leftover is HELD). Keep looping while any item
   can advance next pass — including a merge completed this pass (needs a
-  reconciliation tick). Local cleanup / leftover inventory alone never keeps
-  the loop alive.
+  reconciliation tick). Local cleanup / leftover inventory / leftover servers
+  alone never keep the loop alive.
 - **Schedule footer + Local outstanding:** every pass report includes leftover
   linked worktrees and non-default local branches (or `none`), plus last/next
   local times, cadence, and bound — see `references/reporting-and-loop.md`.
@@ -78,8 +82,9 @@ load `local-cleanup.md` once — it runs even on an empty GitHub backlog.
 6. Parallelize independent deep work in separate worktrees; never overlap whole
    janitor passes.
 7. After the GitHub arms settle, run local hygiene through
-   `references/local-cleanup.md` on the same primary set. Finish with the
-   required outstanding inventory.
+   `references/local-cleanup.md` on the same primary set (stale loopback
+   dev servers first, then worktrees/branches). Finish with the required
+   outstanding inventory.
 8. Emit the pass report (action rows, **fully enumerated Local outstanding**
    with per-item keep-guard reasons — never a summary placeholder — then
    schedule footer) and make the loop stop/continue decision. Post-merge
@@ -105,6 +110,11 @@ load `local-cleanup.md` once — it runs even on an empty GitHub backlog.
   branch, remove a primary checkout directory, or delete a **remote** branch
   as part of local cleanup. Idle leftover dirt (uncommitted files and topic
   branches with no open PR) is discarded, not merged to `main`.
+- Never kill a process that is not an allowlisted loopback listener whose cwd
+  is under `~/code` or `~/.cursor/worktrees`. Never `pkill -f`, never kill by
+  port number alone, and never touch databases, container engines, Cursor, or
+  sshd. Run `scripts/stop-stale-dev-servers.mts` — do not invent a second
+  scanner.
 - When correctness needs judgment or cannot be validated, follow the universal
   `JANITOR HOLD:` contract and disarm auto-merge. Later passes may maintain
   held PRs but never land them.
@@ -118,6 +128,6 @@ load `local-cleanup.md` once — it runs even on an empty GitHub backlog.
   bumps, prep persistence.
 - `references/issue-triage.md` — idempotency, claim, worktree implementation,
   `/ship`, escalation.
-- `references/local-cleanup.md` — idle leftover discard; open-PR keep; outstanding inventory.
+- `references/local-cleanup.md` — stale loopback listeners; idle leftover discard; open-PR keep; outstanding inventory.
 - `references/reporting-and-loop.md` — bounding, report contract, loop arm/stop.
 - `references/gotchas.md` — recurring fleet / mergeability / lifecycle failures.
