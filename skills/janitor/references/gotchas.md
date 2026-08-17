@@ -32,6 +32,10 @@ when the owning route playbook does not resolve a recurring failure; it is not a
   escalate. Never reset/clean an open-PR tree.
 - **Delete the worktree before the branch.** Removing the branch first fails while a worktree still
   has it checked out; reverse order leaves an orphaned directory with a broken `.git` file.
+- **Stop leftover listeners with the skill script, before worktree remove.** `lsof` COMMAND is
+  truncated; the listener is usually the child (`node …/vite.js`), not `npm run dev`. Do not
+  `pkill -f` or kill by port. A kill `ERROR` is a report row, not a reason to escalate. Run
+  `scripts/stop-stale-dev-servers.mts` once per pass, not per repo.
 
 ## Durable GitHub state
 

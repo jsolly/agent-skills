@@ -95,12 +95,16 @@ Pre-wired alternate postures (change the default above to adopt one):
     If the issue is ambiguous or needs a product/design call, that's a HOLD-with-comment **before**
     writing code — guessing at intent and merging it is the failure mode this invariant prevents.
 11. **Local cleanup is idle-machine and local-only.** `/janitor` assumes no other agents are
-    working. Discard uncommitted leftover dirt and delete extra worktrees/topic branches **unless**
-    a `local-cleanup.md` keep-guard fires (open PR, protected/default branch name, primary
-    checkout directory, locked/in-use, unresolved head). Dirty / no-upstream / unique-commits
-    without an open PR are **not** keep-guards — delete them (`-D` if needed); do not merge them
-    onto `main`. `reset --hard` + `git clean -fd` (never `-fdx`) are allowed only on those
-    leftovers, never on an open-PR tree. Never `git worktree remove --force`, never delete remote
+    working. Discard uncommitted leftover dirt, stop leftover allowlisted loopback listeners
+    whose cwd is under `~/code` or `~/.cursor/worktrees`, and delete extra worktrees/topic
+    branches **unless** a `local-cleanup.md` keep-guard fires (open PR, protected/default
+    branch name, primary checkout directory, locked/in-use, unresolved head). Dirty /
+    no-upstream / unique-commits without an open PR are **not** keep-guards — delete them
+    (`-D` if needed); do not merge them onto `main`. A leftover `npm run dev` is not a
+    keep-guard. Kill only through `scripts/stop-stale-dev-servers.mts` — never `pkill -f`,
+    never by port alone, never databases / container engines / Cursor / sshd.
+    `reset --hard` + `git clean -fd` (never `-fdx`) are allowed only on those leftovers,
+    never on an open-PR tree. Never `git worktree remove --force`, never delete remote
     branches. A refused cleanup is a report row, not a HOLD and not a bypass invitation.
 
 ## Universal HOLD contract
