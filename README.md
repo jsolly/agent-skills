@@ -53,7 +53,7 @@ this repo (or from private `dotagents` `templates/cloud-agent/`). The `install` 
 | `gauntlet-loop` | Self-start Gauntlet Loop on substantial plans / large implementations |
 | `investigate` | Evidence-driven diagnosis; finishes with CreatePlan (fix or evidence-acquisition) |
 | `verify-ui` | Fail-closed UI evidence receipt (route, dual viewports, render-only or interactions) |
-| `bug-enhancement-report` | Search-first bug/enhancement filing with redacted evidence and honest uploads |
+| `bug-enhancement-report` | Search-first bug/enhancement filing, including Cursor forum, with redacted evidence |
 
 ## Review agents (`/ship` fleet)
 

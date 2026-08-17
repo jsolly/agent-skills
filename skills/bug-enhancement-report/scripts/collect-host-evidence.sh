@@ -183,6 +183,9 @@ command -v rustc >/dev/null 2>&1 && run_or_na "rustc" rustc --version
 command -v go >/dev/null 2>&1 && run_or_na "go" go version
 command -v podman >/dev/null 2>&1 && run_or_na "podman" podman --version
 command -v docker >/dev/null 2>&1 && run_or_na "docker" docker --version
+# Version-only — never `agent about` (prints User Email).
+command -v cursor >/dev/null 2>&1 && run_or_na "cursor" cursor --version
+command -v agent >/dev/null 2>&1 && run_or_na "agent" agent --version
 
 if [[ "$include_git" -eq 1 ]] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   section "Git (cwd repo)"
