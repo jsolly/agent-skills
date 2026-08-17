@@ -12,12 +12,9 @@ Load from the skill entry. Do not invent a tracker.
    cloud product, or SaaS, file with **that vendor's official tracker**
    (product docs → Support / GitHub org / forum / in-app feedback). Filing a
    Cursor, VS Code, GitHub-the-product, or similar bug on the user's
-   application repo is a wrong-tracker failure.
-   **Cursor** (IDE, CLI `agent`, Cloud/Background Agent, BugBot, or
-   forum.cursor.com itself) → [forum.cursor.com](https://forum.cursor.com)
-   per `references/cursor-forum.md`. Ignore the leftover in-app GitHub
-   "Report Issue" URL (`github.com/getcursor/cursor`). Billing/account →
-   email `hi@cursor.com`, do not post.
+   application repo is a wrong-tracker failure. **Cursor** surfaces (IDE,
+   CLI `agent`, Cloud/Background Agent, BugBot, forum.cursor.com) → load
+   `references/cursor-forum.md` (includes billing redirect).
 3. **Current git remote** — if the subject is *this* codebase, use the CWD
    repo's issue tracker:
    - `github.com` / `github.example` → GitHub issues (`gh`)
@@ -77,11 +74,8 @@ merely shared keywords. Follow `Duplicate of #N` to the canonical item.
 | Search failed (auth/network) | `blocked` — do not create to "save time." |
 
 **Value gate for create:** would a maintainer learn something they cannot
-already see on an existing item? If not, comment or abstain.
-
-Cursor forum: staff *want* extra OS/config/repro on an existing bug — that
-is a **comment**, not a second topic. Feature requests: vote + comment,
-never clone. Full table in `references/cursor-forum.md`.
+already see on an existing item? If not, comment or abstain. Cursor
+forum overlay (comment vs vote vs clone): `references/cursor-forum.md`.
 
 ## Post
 
@@ -101,10 +95,6 @@ gh issue comment --repo OWNER/REPO NUMBER --body-file COMMENT.md
 # GitLab
 glab issue create --title '…' --description "$(cat BODY.md)"
 glab issue note ISSUE --message "$(cat COMMENT.md)"
-
-# Cursor forum (Discourse) — only with an existing API key; see
-# references/cursor-forum.md. Browser composer is preferred when logged in.
-# curl -X POST https://forum.cursor.com/posts.json  (title/raw/category or topic_id/raw)
 ```
 
 Capture the URL the tool prints. No URL ⇒ `blocked`.
